@@ -4,12 +4,27 @@ on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "full = build + GitHub Release + itch | itch-only = re-push existing zip"
+        required: true
+        default: full
+        type: choice
+        options:
+          - full
+          - itch-only
+      release_tag:
+        description: "Release tag (e.g. v0.1.4). full = attach assets; itch-only = download zip from this release"
+        required: true
+        type: string
 
 permissions:
   contents: write
 
 jobs:
-  release:
+  build:
+    if: github.event_name == 'push' || inputs.mode == 'full'
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -40,26 +55,85 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
+          tag_name: ${{ github.event_name == 'push' && github.ref_name || inputs.release_tag }}
           files: |
             dist-app/*.exe
             dist-app/*.zip
           generate_release_notes: true
 
-      - name: Push to itch.io (optional)
-        if: ${{ vars.ITCH_BUTLER_TARGET != '' || (vars.ITCH_USER != '' && vars.ITCH_GAME != '') }}
+      - name: Upload dist-app artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-app
+          path: |
+            dist-app/*.exe
+            dist-app/*.zip
+          if-no-files-found: error
+
+  push-itch:
+    needs: build
+    if: |
+      always() &&
+      (needs.build.result == 'success' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'itch-only')) &&
+      (vars.ITCH_BUTLER_TARGET != '' || (vars.ITCH_USER != '' && vars.ITCH_GAME != ''))
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download dist-app (build artifact)
+        if: needs.build.result == 'success'
+        uses: actions/download-artifact@v4
+        with:
+          name: dist-app
+          path: dist-app
+
+      - name: Download dist-app (GitHub Release)
+        if: github.event_name == 'workflow_dispatch' && inputs.mode == 'itch-only'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $tag = "${{ inputs.release_tag }}".Trim()
+          if (-not $tag.StartsWith('v')) { $tag = "v$tag" }
+
+          $branding = Get-Content branding.json -Raw | ConvertFrom-Json
+          $pkg = Get-Content package.json -Raw | ConvertFrom-Json
+          $version = $tag -replace '^v', ''
+          if ($pkg.version -ne $version) {
+            Write-Host "::warning::package.json version ($($pkg.version)) differs from release tag ($version)"
+          }
+
+          $zipName = "$($branding.productName)-$version-x64.zip"
+          New-Item -ItemType Directory -Force -Path dist-app | Out-Null
+          $out = Join-Path dist-app $zipName
+          $uri = "https://github.com/${{ github.repository }}/releases/download/$tag/$zipName"
+
+          Write-Host "[itch-only] GET $uri"
+          $headers = @{ Authorization = "Bearer $env:GH_TOKEN"; Accept = "application/octet-stream" }
+          Invoke-WebRequest -Uri $uri -Headers $headers -OutFile $out
+          if (-not (Test-Path $out)) { throw "Download failed: $out" }
+          Write-Host "[itch-only] saved $out ($((Get-Item $out).Length) bytes)"
+
+      - name: Push to itch.io
+        continue-on-error: true
         shell: pwsh
         env:
           BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
         run: |
           if (-not $env:BUTLER_API_KEY) {
-            throw "BUTLER_API_KEY secret is missing. Add it in repo Settings → Secrets."
+            Write-Host "::warning::BUTLER_API_KEY secret is missing — skipping itch.io push"
+            exit 0
           }
 
           choco install butler -y
 
           $pkg = Get-Content package.json -Raw | ConvertFrom-Json
           $branding = Get-Content branding.json -Raw | ConvertFrom-Json
-          $zip = "dist-app/$($branding.productName)-$($pkg.version)-x64.zip"
+
+          $tag = "${{ github.event_name == 'push' && github.ref_name || inputs.release_tag }}".Trim()
+          if (-not $tag.StartsWith('v')) { $tag = "v$tag" }
+          $version = $tag -replace '^v', ''
+          $zip = "dist-app/$($branding.productName)-$version-x64.zip"
 
           if (-not (Test-Path $zip)) {
             Write-Host "dist-app contents:"
@@ -83,7 +157,7 @@ jobs:
           "@
             }
 
-            $target = "$user/$game`:$channel"
+            $target = "$user/${game}:$channel"
           }
 
           Write-Host "[butler] push $zip -> $target"

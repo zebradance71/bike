@@ -140,13 +140,23 @@ $env:BUTLER_API_KEY = "..."
 
 ### GitHub Release
 
+**タグ push（通常リリース）**
+
 ```powershell
-git tag v0.2.0
-git push origin v0.2.0
+# package.json version を bump → commit → push
+git tag v0.1.5
+git push origin v0.1.5
 ```
 
-`.github/workflows/release.yml` がビルド → Release 資産アップロード。
-`BUTLER_API_KEY` / `ITCH_USER` / `ITCH_GAME` を repo secrets/vars に設定すると itch へも push。
+**手動実行（Actions → Release → Run workflow）**
+
+| mode | 用途 | release_tag |
+|------|------|-------------|
+| `full` | ビルド + GitHub Release + itch | 付けるタグ名（例 `v0.1.5`） |
+| `itch-only` | itch 再 push のみ（ビルドなし） | 既存 Release（例 `v0.1.4`） |
+
+- GitHub Release 成功後、**itch 失敗でもワークフロー全体は成功**（itch ステップのみ warning）
+- itch だけやり直す: `itch-only` + `release_tag: v0.1.4`
 
 ---
 
