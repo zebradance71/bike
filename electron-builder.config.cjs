@@ -46,8 +46,11 @@ module.exports = {
     artifactName: "${productName}-${version}-${arch}.${ext}",
     target: [
       { target: "nsis", arch: ["x64"] },
-      { target: "zip", arch: ["x64"] },
+      { target: "portable", arch: ["x64"] },
     ],
+  },
+  portable: {
+    artifactName: "${productName}-${version}-portable-${arch}.${ext}",
   },
   nsis: {
     oneClick: false,
@@ -60,6 +63,7 @@ module.exports = {
     deleteAppDataOnUninstall: false,
     runAfterFinish: true,
     include: "build/installer.nsh",
+    artifactName: "${productName}-${version}-setup-${arch}.${ext}",
   },
   publish: null,
   // Expose version for artifact naming (electron-builder reads package.json

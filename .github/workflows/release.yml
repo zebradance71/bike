@@ -60,8 +60,9 @@ jobs:
         with:
           tag_name: ${{ github.event_name == 'push' && github.ref_name || inputs.release_tag }}
           files: |
-            dist-app/*.exe
-            dist-app/*.zip
+            dist-app/*-setup-x64.exe
+            dist-app/*-portable-x64.exe
+            dist-app/*-win64.zip
           generate_release_notes: true
 
       - name: Upload dist-app artifact
@@ -69,8 +70,9 @@ jobs:
         with:
           name: dist-app
           path: |
-            dist-app/*.exe
-            dist-app/*.zip
+            dist-app/*-setup-x64.exe
+            dist-app/*-portable-x64.exe
+            dist-app/*-win64.zip
           if-no-files-found: error
 
   push-itch:
@@ -106,7 +108,7 @@ jobs:
             Write-Host "::warning::package.json version ($($pkg.version)) differs from release tag ($version)"
           }
 
-          $zipName = "$($branding.productName)-$version-x64.zip"
+          $zipName = "$($branding.productName)-$version-win64.zip"
           New-Item -ItemType Directory -Force -Path dist-app | Out-Null
           $out = Join-Path dist-app $zipName
           $uri = "https://github.com/${{ github.repository }}/releases/download/$tag/$zipName"
@@ -136,7 +138,7 @@ jobs:
           $tag = "${{ github.event_name == 'push' && github.ref_name || inputs.release_tag }}".Trim()
           if (-not $tag.StartsWith('v')) { $tag = "v$tag" }
           $version = $tag -replace '^v', ''
-          $zip = "dist-app/$($branding.productName)-$version-x64.zip"
+          $zip = "dist-app/$($branding.productName)-$version-win64.zip"
 
           if (-not (Test-Path $zip)) {
             Write-Host "dist-app contents:"

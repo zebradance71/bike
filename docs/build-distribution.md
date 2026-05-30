@@ -48,8 +48,9 @@ npm run dist
 
 ```
 dist-app/
-├ Ninja2-0.1.0-x64.exe            # NSIS インストーラ（クリック→次へ→完了）
-├ Ninja2-0.1.0-x64.zip            # ポータブル ZIP（解凍してそのまま起動可）
+├ Ninja2-0.1.0-setup-x64.exe      # NSIS インストーラ（推奨）
+├ Ninja2-0.1.0-portable-x64.exe   # 単体 exe（解凍不要）
+├ Ninja2-0.1.0-win64.zip          # Ninja2/ フォルダ + README 付き
 ├ Ninja2-0.1.0-x64.exe.blockmap   # 差分更新用メタ（Phase 2 で活用）
 └ latest.yml                       # auto-update 用メタ（Phase 2 で活用）
 ```

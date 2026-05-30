@@ -21,7 +21,7 @@ $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..\..")).Path
 if (-not $Artifact) {
     $branding = Get-Content (Join-Path $RepoRoot "branding.json") -Raw | ConvertFrom-Json
     $pkg = Get-Content (Join-Path $RepoRoot "package.json") -Raw | ConvertFrom-Json
-    $name = "$($branding.productName)-$($pkg.version)-x64.zip"
+    $name = "$($branding.productName)-$($pkg.version)-win64.zip"
     $Artifact = Join-Path $RepoRoot "dist-app" $name
 }
 

@@ -1,7 +1,7 @@
 {
   "name": "ninja",
   "type": "module",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "private": true,
   "description": "Silent Ninja Companion — a small desktop friend",
   "author": "ToriiLabs",
@@ -17,7 +17,7 @@
     "build:itch-cover": "py -3 scripts/build-itch-cover.py",
     "start": "npm run build && electron .",
     "predist": "node scripts/check-dist-ready.mjs",
-    "postdist": "pwsh -NoProfile -File scripts/verify-dist.ps1",
+    "postdist": "pwsh -NoProfile -File scripts/verify-dist.ps1 && pwsh -NoProfile -File scripts/package-win-folder.ps1",
     "dist": "vite build && electron-builder --config electron-builder.config.cjs --publish never",
     "dist:dir": "vite build && electron-builder --config electron-builder.config.cjs --dir",
     "dist:portable": "vite build && electron-builder --config electron-builder.config.cjs --win portable zip --publish never",
