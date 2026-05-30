@@ -4,13 +4,13 @@ import { touchCompanionActivity } from "./engine/companionActivity";
 import { useCompanionApp } from "./useDevAnimPreview";
 import {
   KUNAI_FLY_EXTRA_PX_MULT,
-  REQUIRED_STEMS,
   resolveStemUrl,
 } from "./characters/ninja/actions";
 import { ActionDebugPanel } from "./characters/ninja/debug/ActionDebugPanel";
 import { FRAME_ASSET_REV } from "./characters/ninja/frames/frameAssetUrl";
 import { frameTierResolveDebug } from "./characters/ninja/frames/tierCatalog";
 import { NinjaSpriteRenderer } from "./characters/ninja/render/SpriteRenderer";
+import { activeCharacter } from "./characters/active";
 import "./companion.css";
 
 export function App() {
@@ -46,9 +46,9 @@ export function App() {
     if (!import.meta.env.DEV) return;
 
     const missing: string[] = [];
-    for (const stem of REQUIRED_STEMS) {
+    for (const stem of activeCharacter.requiredStems) {
       const debug = frameTierResolveDebug(stem, renderW);
-      console.info("[ninja][asset]", {
+      console.info("[companion][asset]", {
         stem: debug.stem,
         resolvedPath: debug.resolvedPath,
         exists: debug.exists,
@@ -59,19 +59,28 @@ export function App() {
       }
     }
 
-    const idleResolved = resolveStemUrl({ stem: "idle" }, renderW);
+    const idleResolved = resolveStemUrl(
+      { stem: activeCharacter.trayIconStem ?? "idle" },
+      renderW
+    );
     if (idleResolved) {
-      console.info("[ninja][asset] idle startup resolve OK", {
+      console.info("[companion][asset] idle startup resolve OK", {
+        character: activeCharacter.id,
         resolvedPath: idleResolved,
         rev: FRAME_ASSET_REV,
       });
     } else {
-      console.warn("[ninja][asset] idle startup resolve FAILED");
+      console.warn("[companion][asset] idle startup resolve FAILED", {
+        character: activeCharacter.id,
+      });
       if (!missing.includes("idle")) missing.push("idle");
     }
 
     if (missing.length > 0) {
-      console.warn("[ninja][asset] missing stems", missing);
+      console.warn("[companion][asset] missing stems", {
+        character: activeCharacter.id,
+        missing,
+      });
     }
   }, [renderW]);
 
