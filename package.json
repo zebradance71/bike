@@ -1,7 +1,7 @@
 {
   "name": "ninja",
   "type": "module",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "description": "Silent Ninja Companion — a small desktop friend",
   "author": "ToriiLabs",
@@ -16,10 +16,10 @@
     "build:icons": "npm run build:tray && npm run build:icon",
     "start": "npm run build && electron .",
     "predist": "node -e \"try{require('child_process').execSync('py -3 scripts/build-app-icon.py && py -3 scripts/build-tray-icon.py',{stdio:'inherit'})}catch(e){console.log('[predist] icon build skipped (Python missing). Falling back to placeholder icons; ship-quality icons require running npm run build:icons.')}\"",
-    "dist": "vite build && electron-builder",
-    "dist:dir": "vite build && electron-builder --dir",
-    "dist:portable": "vite build && electron-builder --win portable zip",
-    "dist:installer": "vite build && electron-builder --win nsis",
+    "dist": "vite build && electron-builder --config electron-builder.config.cjs --publish never",
+    "dist:dir": "vite build && electron-builder --config electron-builder.config.cjs --dir",
+    "dist:portable": "vite build && electron-builder --config electron-builder.config.cjs --win portable zip --publish never",
+    "dist:installer": "vite build && electron-builder --config electron-builder.config.cjs --win nsis --publish never",
     "regen:presence": "py -3 scripts/restore-presence-frames.py",
     "regen:display": "py -3 scripts/regen-all-display.py",
     "regen:frames": "py -3 scripts/fix-frame-alpha.py"
