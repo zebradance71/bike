@@ -1,0 +1,32 @@
+---
+description: Character pack author guide
+globs: src/companion/characters/**
+alwaysApply: false
+---
+
+# Pack author guide
+
+## 新規キャラ
+
+```powershell
+.\tools\template\init-new-pack.ps1 -CharacterId fox -DisplayName Fox -AppName FoxCompanion
+```
+
+## 必須ファイル
+
+| ファイル | 役割 |
+|---------|------|
+| `pack.ts` | CharacterPack 定義 |
+| `actions.ts` | アクション catalog + REQUIRED_STEMS |
+| `useLayers.ts` | 状態機械 → render layers |
+| `frames/tierCatalog.ts` | PNG stem 解決 |
+
+## アクション追加
+
+1. `actions.ts` に ActionDef を追加
+2. `useLayers.ts` に transient ロジックを追加
+3. フレーム PNG を import → `FRAME_ASSET_REV` bump
+
+## dev キー
+
+- `devKey` を actions に付けると `useDevAnimPreview` が自動バインド

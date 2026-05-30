@@ -1,0 +1,38 @@
+---
+description: Character pack sprite import — #FF00FF magenta cell workflow
+globs: scripts/**/*.py,src/companion/assets/frames/**
+alwaysApply: true
+---
+
+# Character pack frame import (必須)
+
+## 画像生成
+
+- **透過 PNG を作らない**
+- 背景: `solid #FF00FF magenta background only, no transparency, no black, no checkerboard`
+- **参照シートを添付**し、**1ポーズ1枚**マゼンタで生成
+
+## 共通 import パス
+
+- 共通ロジック: `scripts/pack-tools/frame_import_common.py`
+- キャラ固有スクリプト: `scripts/characters/<characterId>/`
+- 旧パス `scripts/import-*.py` は互換シム（中身は characters 配下）
+
+## 手順（例: S / Shift+S）
+
+1. ユーザー参照シート（3列）を受け取る
+2. 参照付きで列ごとに生成 → `assets/*-magenta.png`
+3. `py -3 scripts/characters/ninja/import-smoke-sit-from-magenta-cells.py`
+4. ログが `chroma sheet - key only, no black paint` であること
+5. `FRAME_ASSET_REV` bump、dev 再起動案内
+
+## compose（`frame_import_common.py`）
+
+- bbox + 36px、512×512、待機 idle と同高、足元 FOOT_Y
+- `key_chroma_border` + trapped strict magenta + 軽い `despill_magenta_fringe`
+
+## 禁止
+
+- 黒シートを `paint_black_matte_to_magenta_plate` だけで完結させる
+- 参照なし GenerateImage だけで別デザインを作る
+- 黒 border flood / 透過 PNG 生成

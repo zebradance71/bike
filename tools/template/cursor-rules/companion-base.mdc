@@ -1,0 +1,23 @@
+---
+description: Companion base layer — do not edit per-character
+globs: src/companion/engine/**,src/companion/frames/**,src/companion/App.tsx,electron/**
+alwaysApply: false
+---
+
+# Companion base layer
+
+## 原則
+
+- **1 リポジトリ = 1 キャラ = 1 .exe** — ランタイム切替 UI は作らない
+- キャラ差分は `src/companion/characters/<id>/` と `branding.json` のみ
+- `active.ts` が唯一の compile-time 切替点
+
+## 触らない（fork 時も）
+
+- `src/companion/engine/` — 自律行動・タイミング
+- `src/companion/frames/` — 汎用 SpriteBodySlot
+- `electron/` — ウィンドウ・トレイ・ブロック連携
+
+## ログ prefix
+
+- `[companion]` を使用（`[ninja]` は使わない）

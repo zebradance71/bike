@@ -1,0 +1,58 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Python deps
+        run: py -3 -m pip install Pillow
+
+      - name: Install npm deps
+        run: npm ci
+
+      - name: Build icons
+        run: npm run build:icons
+
+      - name: Build + package
+        run: npm run dist
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload GitHub Release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist-app/*.exe
+            dist-app/*.zip
+          generate_release_notes: true
+
+      - name: Push to itch.io (optional)
+        if: ${{ vars.ITCH_USER != '' && vars.ITCH_GAME != '' }}
+        shell: pwsh
+        env:
+          BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
+        run: |
+          choco install butler -y
+          $pkg = Get-Content package.json -Raw | ConvertFrom-Json
+          $branding = Get-Content branding.json -Raw | ConvertFrom-Json
+          $zip = "dist-app/$($branding.productName)-$($pkg.version)-x64.zip"
+          butler push $zip "${{ vars.ITCH_USER }}/${{ vars.ITCH_GAME }}:windows"

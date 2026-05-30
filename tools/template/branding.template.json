@@ -1,0 +1,13 @@
+{
+  "appName": "{{APP_NAME}}",
+  "appId": "com.toriilabs.{{CHARACTER_ID}}",
+  "productName": "{{APP_NAME}}",
+  "displayName": "{{DISPLAY_NAME}}",
+  "characterId": "{{CHARACTER_ID}}",
+  "copyright": "Copyright © {{YEAR}} {{AUTHOR}}",
+  "description": "{{DESCRIPTION}}",
+  "author": "{{AUTHOR}}",
+  "publisher": "{{AUTHOR}}",
+  "homepage": "",
+  "blockBridgePort": 7727
+}

@@ -1,0 +1,24 @@
+---
+description: Branding and distribution identifiers
+globs: branding.json,electron-builder.config.cjs,package.json
+alwaysApply: false
+---
+
+# Branding
+
+## 単一ソース
+
+`branding.json` を編集するだけで以下が連動:
+
+- Electron `appId`, `productName`, ショートカット名
+- トレイ `Show {{displayName}}` / `Hide {{displayName}}`
+- itch.io ページテンプレのプレースホルダ
+
+## init-new-pack 後
+
+- `package.json` の `name` / `description` も更新される
+- `npm run build:icons` で idle.png から tray + app icon を再生成
+
+## blockBridgePort
+
+- Chrome 拡張連携ポート。複数 companion を同時開発する場合のみ変更
