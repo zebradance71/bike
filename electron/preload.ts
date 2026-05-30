@@ -3,11 +3,6 @@ import { contextBridge, ipcRenderer } from "electron";
 /**
  * Companion IPC bridge. The API is character-agnostic — IPC channels are
  * prefixed `companion-*` and the renderer accesses it via `window.companion`.
- *
- * `window.ninja` is kept as a legacy alias so existing call sites continue
- * to work during the character-pack refactor. New code should use
- * `window.companion`. Both globals point at the same object (`Object.is`
- * equal), so referential equality holds.
  */
 const companionAPI = {
   startMission: () => ipcRenderer.send("start-mission"),
@@ -74,6 +69,3 @@ const companionAPI = {
 };
 
 contextBridge.exposeInMainWorld("companion", companionAPI);
-// Legacy alias — points at the same object as `window.companion`.
-// Scheduled for removal once all call sites migrate to `window.companion`.
-contextBridge.exposeInMainWorld("ninja", companionAPI);

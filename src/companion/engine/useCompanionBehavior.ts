@@ -272,7 +272,7 @@ export function useCompanionBehavior(
       const threshold = Math.max(100, Math.round(workArea.width * 0.08));
       const stuck = Math.min(leftSpace, rightSpace) < threshold;
       if (import.meta.env.DEV) {
-        console.debug("[ninja][edge-rescue]", {
+        console.debug("[companion][edge-rescue]", {
           win,
           workArea,
           leftSpace,
@@ -452,7 +452,7 @@ export function useCompanionBehavior(
             // `setBlockMode(false)` cancels this task.
             if (Date.now() - blockStart >= BLOCK_GIVE_UP_MS) {
               if (import.meta.env.DEV) {
-                console.debug("[ninja][block][give-up]", {
+                console.debug("[companion][block][give-up]", {
                   elapsedMs: Date.now() - blockStart,
                 });
               }
@@ -490,7 +490,7 @@ export function useCompanionBehavior(
                   bounds.window.x + bounds.window.width / 2;
                 if (winCenterX < centerX) {
                   if (import.meta.env.DEV) {
-                    console.debug("[ninja][block][kunai-reposition]", {
+                    console.debug("[companion][block][kunai-reposition]", {
                       winCenterX,
                       centerX,
                     });
@@ -577,7 +577,7 @@ export function useCompanionBehavior(
   useEffect(() => {
     const off = window.companion?.onBlockMode?.((on) => {
       if (import.meta.env.DEV) {
-        console.debug("[ninja][block][ipc]", { on });
+        console.debug("[companion][block][ipc]", { on });
       }
       setBlockMode(on);
     });

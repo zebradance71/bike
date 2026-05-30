@@ -36,15 +36,6 @@ interface CompanionAPI {
   reportBlockMode?: (on: boolean) => Promise<void>;
 }
 
-/**
- * Legacy alias — kept so pre-refactor call sites (`window.ninja.*`)
- * continue to type-check. New code should use `CompanionAPI` /
- * `window.companion`.
- */
-type NinjaAPI = CompanionAPI;
-
 interface Window {
   companion: CompanionAPI;
-  /** @deprecated Use `window.companion`. Removed when all call sites migrate. */
-  ninja: NinjaAPI;
 }

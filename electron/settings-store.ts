@@ -37,7 +37,7 @@ function getSettingsPath(): string {
     try {
       mkdirSync(dir, { recursive: true });
     } catch (err) {
-      console.warn("[ninja][settings] cannot create userData dir", err);
+      console.warn("[companion][settings] cannot create userData dir", err);
     }
   }
   settingsPath = path.join(dir, "settings.json");
@@ -55,7 +55,7 @@ export function readSettings(): AppSettings {
       return cached;
     }
   } catch (err) {
-    console.warn("[ninja][settings] read failed; using defaults", err);
+    console.warn("[companion][settings] read failed; using defaults", err);
   }
   cached = { ...DEFAULTS };
   return cached;
@@ -68,7 +68,7 @@ export function writeSettings(patch: Partial<AppSettings>): AppSettings {
     const p = getSettingsPath();
     writeFileSync(p, JSON.stringify(next, null, 2), "utf-8");
   } catch (err) {
-    console.warn("[ninja][settings] write failed", err);
+    console.warn("[companion][settings] write failed", err);
   }
   return next;
 }

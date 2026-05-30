@@ -74,12 +74,12 @@ function loadTrayIcon(candidates: string[]): Electron.NativeImage {
         const img = nativeImage.createFromPath(p);
         if (!img.isEmpty()) return img;
       } catch (err) {
-        console.warn("[ninja][tray] icon load failed", p, err);
+        console.warn("[companion][tray] icon load failed", p, err);
       }
     }
   }
   console.warn(
-    "[ninja][tray] no usable icon found; using transparent fallback. " +
+    "[companion][tray] no usable icon found; using transparent fallback. " +
       "Run `py -3 scripts/build-tray-icon.py` to generate assets/tray.{png,ico}."
   );
   return nativeImage.createFromDataURL(FALLBACK_ICON_DATAURL);
@@ -162,7 +162,7 @@ function rebuildMenu(): void {
         try {
           void shell.openPath(app.getPath("userData"));
         } catch (err) {
-          console.warn("[ninja][tray] open userData failed", err);
+          console.warn("[companion][tray] open userData failed", err);
         }
       },
     },
@@ -208,7 +208,7 @@ export function createAppTray(d: TrayDeps): Tray | null {
     return tray;
   } catch (err) {
     console.warn(
-      "[ninja][tray] failed to create tray; running without it",
+      "[companion][tray] failed to create tray; running without it",
       err
     );
     tray = null;

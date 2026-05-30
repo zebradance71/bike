@@ -40,7 +40,7 @@ const startedHidden =
   app.commandLine.hasSwitch("hidden");
 
 /**
- * `Quit Ninja2` from the tray menu is the *only* path that should actually
+ * Quit from the tray menu is the *only* path that should actually
  * terminate the process. Closing the launcher window or hiding the
  * companion just minimises to tray.
  */
@@ -87,7 +87,7 @@ function workAreaBounds(): {
     const [w, h] = companionWindow.getSize();
     const display = screen.getDisplayMatching({ x, y, width: w, height: h });
     if (isDev) {
-      console.debug("[ninja][workArea][main]", {
+      console.debug("[companion][workArea][main]", {
         windowRect: { x, y, width: w, height: h },
         displayId: display.id,
         bounds: display.bounds,
@@ -111,9 +111,9 @@ function smokeLog(
 ): void {
   if (!isDev) return;
   if (typeof labelOrPayload === "string") {
-    console.debug(`[ninja][${labelOrPayload}][main]`, maybePayload ?? {});
+    console.debug(`[companion][${labelOrPayload}][main]`, maybePayload ?? {});
   } else {
-    console.debug("[ninja][smoke][main]", labelOrPayload);
+    console.debug("[companion][smoke][main]", labelOrPayload);
   }
 }
 
@@ -211,7 +211,7 @@ function createLauncherWindow(): void {
   }
 
   // Closing the launcher should not quit the app; we just minimise to tray.
-  // The tray's "Quit Ninja2" sets `wantsQuit = true` first, which lets the
+  // The tray's Quit item sets `wantsQuit = true` first, which lets the
   // close go through.
   launcherWindow.on("close", (event) => {
     if (!wantsQuit && launcherWindow && !launcherWindow.isDestroyed()) {
@@ -263,7 +263,7 @@ function pickTargetSpriteCenterX(
     side = curCenter > mid ? "left" : "right";
     lastTeleportSide = side;
     if (isDev) {
-      console.debug("[ninja][teleport][opposite]", {
+      console.debug("[companion][teleport][opposite]", {
         cur,
         area: { x: area.x, width: area.width },
         minCenter,
@@ -504,7 +504,7 @@ ipcMain.handle(
       if (actualW !== baseW || actualH !== baseW) {
         const [px, py] = companionWindow.getPosition();
         if (isDev) {
-          console.debug("[ninja][teleport][hard-reset][main]", {
+          console.debug("[companion][teleport][hard-reset][main]", {
             actualW,
             actualH,
             baseW,
@@ -522,7 +522,7 @@ ipcMain.handle(
         if (isDev) {
           const [postW, postH] = companionWindow.getSize();
           if (postW !== baseW || postH !== baseW) {
-            console.error("[ninja][teleport][hard-reset-FAILED][main]", {
+            console.error("[companion][teleport][hard-reset-FAILED][main]", {
               after: { postW, postH },
               wanted: { baseW },
             });
@@ -635,7 +635,7 @@ function applyKunaiThrowMode(enabled: boolean, leftExtraPx = 0): void {
   const requested = Math.max(0, Math.round(leftExtraPx));
   if (requested > maxExpansionPx) {
     if (isDev) {
-      console.warn("[ninja][kunai-mode][rejected][main]", {
+      console.warn("[companion][kunai-mode][rejected][main]", {
         requested,
         maxExpansionPx,
         spriteSizePx,
@@ -647,7 +647,7 @@ function applyKunaiThrowMode(enabled: boolean, leftExtraPx = 0): void {
   const targetPx = enabled ? sanitized : 0;
   if (isDev) {
     const [w, h] = companionWindow.getSize();
-    console.debug("[ninja][kunai-mode][main]", {
+    console.debug("[companion][kunai-mode][main]", {
       enabled,
       leftExtraPx,
       sanitized,
@@ -669,7 +669,7 @@ function applyKunaiThrowMode(enabled: boolean, leftExtraPx = 0): void {
   const expectedTotalW = expectedBaseW + kunaiAppliedLeftPx;
   if (actualWidth !== expectedTotalW) {
     if (isDev) {
-      console.debug("[ninja][kunai-state-corrupt][main]", {
+      console.debug("[companion][kunai-state-corrupt][main]", {
         actualWidth,
         expectedTotalW,
         kunaiAppliedLeftPx,
@@ -793,7 +793,7 @@ function broadcastBlockMode(on: boolean, source: string = "ipc"): void {
   if (!companionWindow || companionWindow.isDestroyed()) return;
   companionWindow.webContents.send("companion-block-mode", on);
   if (isDev) {
-    console.debug("[ninja][block] broadcast", { on, source });
+    console.debug("[companion][block] broadcast", { on, source });
   }
   // Reflect the new state in the tray label ("Currently: ON/OFF").
   refreshTrayMenu();
@@ -846,7 +846,7 @@ function applyAutoStart(on: boolean): boolean {
       });
       const applied = app.getLoginItemSettings().openAtLogin;
       if (isDev) {
-        console.info("[ninja][auto-start]", { requested: on, applied });
+        console.info("[companion][auto-start]", { requested: on, applied });
       }
       return applied;
     }
@@ -854,7 +854,7 @@ function applyAutoStart(on: boolean): boolean {
     // in our own settings file so the tray checkbox still reflects intent.
     return on;
   } catch (err) {
-    console.warn("[ninja][auto-start] setLoginItemSettings threw", err);
+    console.warn("[companion][auto-start] setLoginItemSettings threw", err);
     return false;
   }
 }
@@ -902,12 +902,12 @@ function startBlockHttpServer(): void {
     reply(404, { ok: false, error: "not found" });
   });
   blockHttpServer.on("error", (err) => {
-    console.warn("[ninja][block-http] server error", err);
+    console.warn("[companion][block-http] server error", err);
   });
   blockHttpServer.listen(BLOCK_HTTP_PORT, "127.0.0.1", () => {
     if (isDev) {
       console.info(
-        "[ninja][block-http] listening on 127.0.0.1:" + BLOCK_HTTP_PORT
+        "[companion][block-http] listening on 127.0.0.1:" + BLOCK_HTTP_PORT
       );
     }
   });
@@ -973,7 +973,7 @@ app.whenReady().then(() => {
       path.join(__dirname, "../../assets/tray.png"),
       // Dev-time last resort: use the idle sprite directly. Electron will
       // downscale it automatically. Slightly fuzzy at 16px but the user
-      // immediately sees a ninja head in the tray instead of a blank
+      // immediately sees the companion in the tray instead of a blank
       // square while they wait to run `py -3 scripts/build-tray-icon.py`.
       path.join(__dirname, "../src/companion/assets/frames/idle.png"),
       path.join(__dirname, "../../src/companion/assets/frames/idle.png"),
@@ -990,7 +990,7 @@ app.whenReady().then(() => {
   });
 
   // Always materialize the companion at startup. With the tray wrapping
-  // the lifecycle, the user expects the ninja to appear the instant the
+  // the lifecycle, the user expects the companion to appear the instant the
   // app is up — not after pressing a launcher button. Hiding/showing is
   // controlled from the tray afterward.
   showCompanionWindow();
@@ -1017,7 +1017,7 @@ app.on("second-instance", (_event, argv) => {
 
 app.on("window-all-closed", () => {
   // Do NOT quit — the tray icon keeps the app alive. Users quit via the
-  // tray "Quit Ninja2" item, which sets `wantsQuit` first.
+  // tray Quit item, which sets `wantsQuit` first.
   if (!wantsQuit) return;
   stopBlockHttpServer();
   stopTitleWatcher();

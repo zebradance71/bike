@@ -111,7 +111,7 @@ let onChange: TitleWatcherOptions["onChange"] | null = null;
 let isDev = false;
 
 function debugLog(...args: unknown[]): void {
-  if (isDev) console.debug("[ninja][title-watcher]", ...args);
+  if (isDev) console.debug("[companion][title-watcher]", ...args);
 }
 
 function compilePatterns(raw: (string | RegExp)[]): RegExp[] {
@@ -122,7 +122,7 @@ function compilePatterns(raw: (string | RegExp)[]): RegExp[] {
         return new RegExp(String(p), "i");
       } catch (err) {
         console.warn(
-          "[ninja][title-watcher] invalid pattern, skipping",
+          "[companion][title-watcher] invalid pattern, skipping",
           p,
           err
         );
@@ -154,7 +154,7 @@ async function loadActiveWin(): Promise<ActiveWinFn | null> {
     return fn;
   } catch (err) {
     console.warn(
-      "[ninja][title-watcher] `active-win` is not available; watcher will stay disabled. " +
+      "[companion][title-watcher] `active-win` is not available; watcher will stay disabled. " +
         "Run `npm install active-win` to enable extension-less site detection.",
       err
     );
@@ -184,7 +184,7 @@ async function tick(): Promise<void> {
     if (errStreak >= ERR_STREAK_BEFORE_COOLDOWN) {
       cooldownUntil = Date.now() + ERR_COOLDOWN_MS;
       console.warn(
-        "[ninja][title-watcher] sustained errors; cooling down 30s",
+        "[companion][title-watcher] sustained errors; cooling down 30s",
         err
       );
       errStreak = 0;
@@ -204,7 +204,7 @@ async function tick(): Promise<void> {
       try {
         onChange?.(detected, "title-watcher");
       } catch (err) {
-        console.warn("[ninja][title-watcher] onChange threw", err);
+        console.warn("[companion][title-watcher] onChange threw", err);
       }
     }
   } else if (confirmTicks !== 0) {
@@ -218,9 +218,12 @@ export async function startTitleWatcher(
   if (started) return;
   started = true;
 
-  if ((process.env.NINJA_TITLE_WATCHER ?? "").toLowerCase() === "off") {
+  if (
+    (process.env.COMPANION_TITLE_WATCHER ?? process.env.NINJA_TITLE_WATCHER ?? "")
+      .toLowerCase() === "off"
+  ) {
     console.info(
-      "[ninja][title-watcher] disabled by NINJA_TITLE_WATCHER=off"
+      "[companion][title-watcher] disabled by COMPANION_TITLE_WATCHER=off"
     );
     return;
   }
@@ -276,7 +279,7 @@ export async function startTitleWatcher(
   activeWinFn = await loadActiveWin();
   if (!activeWinFn) return;
 
-  console.info("[ninja][title-watcher] starting", {
+  console.info("[companion][title-watcher] starting", {
     pollMs,
     ticksToBlock,
     ticksToUnblock,
