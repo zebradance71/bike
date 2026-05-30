@@ -119,12 +119,23 @@ npm run dist          # NSIS + ZIP → dist-app/
 
 ### itch.io
 
-```powershell
-py -3 tools/template/itch-page/generate-cover.py
-# page-template.html を編集 → itch ページに貼付
+**GitHub repo 設定（Release ワークフロー用）**
 
+| 種別 | 名前 | 例 | 説明 |
+|------|------|-----|------|
+| Secret | `BUTLER_API_KEY` | `itchio_...` | [itch.io → API keys](https://itch.io/user/settings/api-keys) |
+| Variable | `ITCH_USER` | `zebradance71` | プロフィール URL `https://itch.io/profile/NAME` の **NAME** |
+| Variable | `ITCH_GAME` | `ninja2` | ゲーム URL `https://itch.io/USER/GAME-SLUG` の **GAME-SLUG** |
+| Variable | `ITCH_CHANNEL` | `windows` | 省略時 `windows` |
+| Variable | `ITCH_BUTLER_TARGET` | `zebradance71/ninja2:windows` | 上3つより優先（1行で指定） |
+
+`invalid target (bad user)` = **ITCH_USER が itch のユーザー名と一致していない**（GitHub 名・表示名・URL 全体を入れている等）。
+
+**手動アップロード（CI 失敗時・Release ZIP は GitHub から取得可）**
+
+```powershell
 $env:BUTLER_API_KEY = "..."
-.\tools\template\itch-page\butler-upload.ps1 -User yourname -Game fox-companion
+.\tools\template\itch-page\butler-upload.ps1 -User yourname -Game ninja2 -Channel windows
 ```
 
 ### GitHub Release
