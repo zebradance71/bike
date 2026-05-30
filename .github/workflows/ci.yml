@@ -32,3 +32,9 @@ jobs:
 
       - name: Verify pack-tools import (smoke)
         run: py -3 -m pip install Pillow && py -3 -c "import sys; sys.path.insert(0,'scripts/pack-tools'); import frame_import_common, resolve_paths; print('pack-tools ok')"
+
+      - name: Build app icons from SVG
+        run: npm run build:icons
+
+      - name: npm audit (critical only; high in electron-builder dev chain)
+        run: npm audit --audit-level=critical

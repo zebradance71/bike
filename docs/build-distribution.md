@@ -12,6 +12,8 @@
   プレースホルダになる
 - Windows 10/11 64bit でのビルドを想定。クロスビルドは PR ベースの WSL でも
   可能だが本書では扱わない
+- **Visual Studio Build Tools は不要** — `active-win` は N-API prebuild 同梱のため、
+  `electron-builder.config.cjs` で `npmRebuild: false` にしている（ローカル dist 用）
 
 ---
 
@@ -69,6 +71,15 @@ npm run dist:dir
 ---
 
 ## 3. ビルド検証チェックリスト
+
+`npm run dist` の **postdist** で `scripts/verify-dist.ps1` が自動実行されます（exe / tray / active-win win32 同梱を確認）。
+
+手動:
+
+```powershell
+npm run dist:dir
+pwsh -File scripts/verify-dist.ps1
+```
 
 インストーラを動かす前に確認:
 
@@ -179,6 +190,30 @@ npm run dist
 ### `electron-builder` が `code signing identity` 関連で警告
 
 → 無視 OK。`win.signingHashAlgorithms` を設定していない＝無署名ビルドという宣言で、ビルド自体は通る。
+
+### `Could not find any Visual Studio installation`（node-gyp / active-win）
+
+→ `electron-builder` が native モジュールを再コンパイルしようとして失敗。
+本リポジトリは `npmRebuild: false` で prebuild をそのまま使う設定。
+それでも出る場合は `npm ci` のあと `npm run dist` を再実行。
+
+### Block HTTP bridge（127.0.0.1:7727）
+
+- **GET `/block`** — 状態読み取りのみ
+- **POST `/block`** — `{ "on": boolean, "token": "<blockBridgeToken>" }` で ON/OFF
+- トークン: トレイ → **Copy block bridge token**、または `userData/settings.json`
+- `GET /block/on|off` は CSRF 対策で **405**
+
+### Renderer ハードニング
+
+- `sandbox: true` / navigation・popup ブロック（`electron/window-hardening.ts`）
+- launcher preload は `startMission` のみ（`launcher-preload.ts`）
+- smoke / kunai ウィンドウ拡張は sprite 幅 ×3 上限
+
+### npm audit（high in devDependencies）
+
+`electron-builder` / `node-gyp` / `tar` 経由の high は **ビルド時のみ**。
+runtime 依存（`active-win` 等）に critical は無し。CI は `--audit-level=critical`。
 
 ### `active-win` の native binary が見つからない
 

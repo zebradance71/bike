@@ -46,11 +46,18 @@
 リファイン画像: `images/char-concept-e-refined.png`  
 48px テスト: **`preview-refined.html`**
 
+## アプリ ICON（確定）
+
+- **ソース:** `design/icon/app-icon-source.png`（run ポーズ・chibi）  
+  フォールバック: `design/icon/app-icon.svg`（シルエット）
+- **生成:** `npm run build:icons` → `build/icon.ico`（EXE）+ `assets/tray.*`（トレイ）
+- **itch カバー:** `npm run build:itch-cover` → `design/icon/itch-cover.png`
+
 ## 次のステップ
 
 1. 48px でリファインを確認  
-2. OK → 必要なら画像をもう1回だけ調整  
-3. その後 **初めて** SVG / スプライト実装
+2. OK → 必要なら `design/icon/app-icon.svg` を手描き修正  
+3. その後 **初めて** スプライト実装（`idle.png` 系）
 
 ## 検証用仮実装（アプリ）
 

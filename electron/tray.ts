@@ -19,6 +19,7 @@
 import {
   app,
   BrowserWindow,
+  clipboard,
   Menu,
   MenuItemConstructorOptions,
   nativeImage,
@@ -27,6 +28,7 @@ import {
 } from "electron";
 import { existsSync } from "fs";
 import path from "path";
+import { ensureBlockBridgeToken } from "./block-bridge";
 import { branding } from "./branding";
 import { readSettings, writeSettings } from "./settings-store";
 
@@ -163,6 +165,16 @@ function rebuildMenu(): void {
           void shell.openPath(app.getPath("userData"));
         } catch (err) {
           console.warn("[companion][tray] open userData failed", err);
+        }
+      },
+    },
+    {
+      label: "Copy block bridge token",
+      click: () => {
+        try {
+          clipboard.writeText(ensureBlockBridgeToken());
+        } catch (err) {
+          console.warn("[companion][tray] copy block token failed", err);
         }
       },
     },

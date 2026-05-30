@@ -1,15 +1,37 @@
 import { app, BrowserWindow, ipcMain, screen } from "electron";
-import { createServer, type Server } from "http";
 import path from "path";
 import { fileURLToPath } from "url";
+import {
+  ensureBlockBridgeToken,
+  resolveBlockHttpPort,
+  startBlockBridge,
+  stopBlockBridge,
+} from "./block-bridge";
+import {
+  type IpcGuardContext,
+  isCompanionSender,
+  isLauncherSender,
+} from "./ipc-guard";
 import { readSettings, writeSettings } from "./settings-store";
 import {
   collectSelfPids,
   startTitleWatcher,
   stopTitleWatcher,
+  updateTitleWatcherSelfPids,
 } from "./title-watcher";
 import { branding } from "./branding";
 import { createAppTray, destroyAppTray, refreshTrayMenu } from "./tray";
+import {
+  assertPackagedLayout,
+  assertRuntimeSupported,
+  appendStartupLog,
+  installProcessCrashHandlers,
+} from "./startup-guard";
+import {
+  attachRendererGuards,
+  clampAnimationMs,
+  rendererWebPreferences,
+} from "./window-hardening";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const isDev = !app.isPackaged;
@@ -27,6 +49,9 @@ const isDev = !app.isPackaged;
 const singleInstance = app.requestSingleInstanceLock();
 if (!singleInstance) {
   app.quit();
+} else {
+  assertRuntimeSupported();
+  installProcessCrashHandlers();
 }
 
 /**
@@ -70,6 +95,17 @@ let appliedSmokeDx = 0;
 let kunaiAppliedLeftPx = 0;
 /** Actual horizontal delta applied when last expanded (negative or 0). */
 let kunaiAppliedDx = 0;
+
+const ipcGuardCtx: IpcGuardContext = {
+  isDev,
+  getCompanion: () => companionWindow,
+  getLauncher: () => launcherWindow,
+};
+
+const BLOCK_HTTP_PORT = resolveBlockHttpPort(
+  process.env.NINJA_BLOCK_PORT ?? branding.blockBridgePort
+);
+let blockModeMirror = false;
 
 type Bounds = { x: number; y: number; width: number; height: number };
 
@@ -148,7 +184,10 @@ function animateCompanionX(
         return;
       }
 
-      const t = Math.min(1, (Date.now() - start) / Math.max(1, durationMs));
+      const t = Math.min(
+      1,
+      (Date.now() - start) / clampAnimationMs(durationMs)
+    );
       const eased = t * (2 - t);
       const x = Math.round(fromX + span * eased);
       companionWindow.setPosition(x, y);
@@ -169,12 +208,18 @@ function baseWindowPxForSprite(spritePx: number): number {
   return sprite + WINDOW_CHROME_PX;
 }
 
+/** Max horizontal expansion for smoke / kunai window growth. */
+function maxWindowExpansionPx(): number {
+  return baseWindowPxForSprite(spriteSizePx) * 3;
+}
+
 function clamp(n: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, n));
 }
 
-function getPreloadPath(): string {
-  return path.join(__dirname, "preload.mjs");
+function getPreloadPath(kind: "launcher" | "companion"): string {
+  const file = kind === "launcher" ? "launcher-preload.mjs" : "preload.mjs";
+  return path.join(__dirname, file);
 }
 
 function devUrl(page: "launcher" | "companion"): string {
@@ -197,12 +242,10 @@ function createLauncherWindow(): void {
     show: !startedHidden,
     title: "NINJA",
     backgroundColor: "#f5f0e8",
-    webPreferences: {
-      preload: getPreloadPath(),
-      contextIsolation: true,
-      nodeIntegration: false,
-    },
+    webPreferences: rendererWebPreferences(getPreloadPath("launcher")),
   });
+
+  attachRendererGuards(launcherWindow, isDev);
 
   if (isDev) {
     launcherWindow.loadURL(devUrl("launcher"));
@@ -312,7 +355,16 @@ function applySmokeMode(enabled: boolean, extraWidthPx = 0): void {
   if (!oldBounds) return;
 
   if (enabled) {
-    const extra = Math.max(0, Math.round(extraWidthPx));
+    const maxExtra = maxWindowExpansionPx();
+    const requested = Math.max(0, Math.round(extraWidthPx));
+    if (requested > maxExtra && isDev) {
+      console.warn("[companion][smoke-mode][rejected][main]", {
+        requested,
+        maxExtra,
+        spriteSizePx,
+      });
+    }
+    const extra = Math.min(requested, maxExtra);
     appliedSmokeExtraPx = extra;
     const nextW = oldBounds.width + extra;
     const nextH = oldBounds.height;
@@ -405,12 +457,10 @@ function createCompanionWindow(): void {
     focusable: isDev,
     visibleOnAllWorkspaces: true,
     backgroundColor: "#00000000",
-    webPreferences: {
-      preload: getPreloadPath(),
-      contextIsolation: true,
-      nodeIntegration: false,
-    },
+    webPreferences: rendererWebPreferences(getPreloadPath("companion")),
   });
+
+  attachRendererGuards(companionWindow, isDev);
 
   if (isDev) {
     companionWindow.setIgnoreMouseEvents(false);
@@ -468,14 +518,15 @@ function startMission(): void {
   launcherWindow?.hide();
 }
 
-ipcMain.on("start-mission", () => {
+ipcMain.on("start-mission", (event) => {
+  if (!isLauncherSender(ipcGuardCtx, event)) return;
   startMission();
 });
 
 ipcMain.handle(
   "companion-teleport",
   (
-    _event,
+    event,
     options?: {
       marginX?: number;
       marginY?: number;
@@ -487,6 +538,7 @@ ipcMain.handle(
       phase?: string;
     }
   ) => {
+    if (!isCompanionSender(ipcGuardCtx, event)) return { x: 0, y: 0 };
     if (!companionWindow) return { x: 0, y: 0 };
 
     // Defensive reset 1: collapse tracked expansions.
@@ -589,11 +641,13 @@ ipcMain.handle(
   }
 );
 
-ipcMain.handle("companion-set-size", (_event, spritePx: number) => {
+ipcMain.handle("companion-set-size", (event, spritePx: number) => {
+  if (!isCompanionSender(ipcGuardCtx, event)) return;
   applyCompanionSize(spritePx);
 });
 
-ipcMain.handle("companion-get-bounds", () => {
+ipcMain.handle("companion-get-bounds", (event) => {
+  if (!isCompanionSender(ipcGuardCtx, event)) return null;
   if (!companionWindow) return null;
   const [x, y] = companionWindow.getPosition();
   const [width, height] = companionWindow.getSize();
@@ -606,7 +660,8 @@ ipcMain.handle("companion-get-bounds", () => {
 
 ipcMain.handle(
   "companion-set-smoke-mode",
-  (_event, enabled: boolean, extraWidthPx?: number) => {
+  (event, enabled: boolean, extraWidthPx?: number) => {
+    if (!isCompanionSender(ipcGuardCtx, event)) return;
     applySmokeMode(Boolean(enabled), extraWidthPx ?? 0);
   }
 );
@@ -631,7 +686,7 @@ function applyKunaiThrowMode(enabled: boolean, leftExtraPx = 0): void {
   // larger is a bug (e.g. caller passed window.width by mistake or a stale
   // value during reload). Clamp aggressively + log so the bug is visible.
   const baseSpriteForCap = baseWindowPxForSprite(spriteSizePx);
-  const maxExpansionPx = baseSpriteForCap * 3;
+  const maxExpansionPx = maxWindowExpansionPx();
   const requested = Math.max(0, Math.round(leftExtraPx));
   if (requested > maxExpansionPx) {
     if (isDev) {
@@ -710,14 +765,16 @@ function applyKunaiThrowMode(enabled: boolean, leftExtraPx = 0): void {
 
 ipcMain.handle(
   "companion-set-kunai-throw-mode",
-  (_event, enabled: boolean, leftExtraPx?: number) => {
+  (event, enabled: boolean, leftExtraPx?: number) => {
+    if (!isCompanionSender(ipcGuardCtx, event)) return;
     applyKunaiThrowMode(Boolean(enabled), leftExtraPx ?? 0);
   }
 );
 
 ipcMain.handle(
   "companion-slide-x",
-  async (_event, deltaPx: number, durationMs: number) => {
+  async (event, deltaPx: number, durationMs: number) => {
+    if (!isCompanionSender(ipcGuardCtx, event)) return;
     if (!companionWindow) return;
     const [fromX, y] = companionWindow.getPosition();
     const winW = companionWindow.getSize()[0];
@@ -734,14 +791,16 @@ ipcMain.handle(
       companionWindow.setPosition(safeFromX, y);
     }
     const targetX = clamp(safeFromX + Math.round(deltaPx), minX, maxX);
-    await animateCompanionX(targetX, durationMs);
+    await animateCompanionX(targetX, clampAnimationMs(durationMs));
   }
 );
 
 ipcMain.handle(
   "companion-peek-edge",
-  async (_event, side: "left" | "right", durationMs: number) => {
+  async (event, side: "left" | "right", durationMs: number) => {
+    if (!isCompanionSender(ipcGuardCtx, event)) return;
     if (!companionWindow) return;
+    if (side !== "left" && side !== "right") return;
     const [fromX, fromY] = companionWindow.getPosition();
     savedCompanionPosition = { x: fromX, y: fromY };
 
@@ -751,38 +810,25 @@ ipcMain.handle(
     const targetX =
       side === "left" ? area.x - hidden : area.x + area.width - winW + hidden;
 
-    await animateCompanionX(targetX, durationMs);
+    await animateCompanionX(targetX, clampAnimationMs(durationMs));
   }
 );
 
-ipcMain.handle("companion-restore-position", async (_event, durationMs: number) => {
+ipcMain.handle("companion-restore-position", async (event, durationMs: number) => {
+  if (!isCompanionSender(ipcGuardCtx, event)) return;
   if (!companionWindow || !savedCompanionPosition) return;
   const { x } = savedCompanionPosition;
   savedCompanionPosition = null;
-  await animateCompanionX(x, durationMs);
+  await animateCompanionX(x, clampAnimationMs(durationMs));
 });
 
 /**
- * Block-mode HTTP bridge.
+ * Block-mode HTTP bridge (127.0.0.1 only).
  *
- * A future browser extension is the intended client. Exposes a tiny
- * loopback-only HTTP server on 127.0.0.1 so the extension can flip block
- * mode with a simple `fetch("http://127.0.0.1:7727/block/on")` whenever
- * the user navigates to a configured "blocked" site (X / YouTube / etc.).
- *
- *  GET /block/on    → flip block-mode ON  (200 OK json)
- *  GET /block/off   → flip block-mode OFF (200 OK json)
- *  GET /block       → report current state (best-effort, host-side mirror)
- *
- * The companion renderer holds the canonical state; main only forwards
- * the requested transition via `webContents.send("companion-block-mode", on)`.
+ *  GET  /block       → read blockMode (no side effects)
+ *  POST /block       → { "on": boolean, "token": "<settings.blockBridgeToken>" }
+ *  GET  /block/on|off → 405 (legacy; CSRF-safe POST only)
  */
-const BLOCK_HTTP_PORT = Number(
-  process.env.NINJA_BLOCK_PORT ?? branding.blockBridgePort
-);
-let blockHttpServer: Server | null = null;
-let blockModeMirror = false; // best-effort echo of last request
-
 function broadcastBlockMode(on: boolean, source: string = "ipc"): void {
   // Dedupe: title watcher polls at 1.5s intervals, the HTTP bridge fires
   // once per transition, and dev key `B` toggles. They can race; ignoring
@@ -865,67 +911,33 @@ function quitApp(): void {
 }
 
 function startBlockHttpServer(): void {
-  if (blockHttpServer) return;
-  blockHttpServer = createServer((req, res) => {
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
-    if (req.method === "OPTIONS") {
-      res.statusCode = 204;
-      res.end();
-      return;
-    }
-    if (!req.url) {
-      res.statusCode = 400;
-      res.end();
-      return;
-    }
-    const url = new URL(req.url, "http://127.0.0.1");
-    const reply = (status: number, body: unknown) => {
-      res.statusCode = status;
-      res.setHeader("Content-Type", "application/json");
-      res.end(JSON.stringify(body));
-    };
-    if (url.pathname === "/block/on") {
-      broadcastBlockMode(true, "http");
-      reply(200, { ok: true, blockMode: true });
-      return;
-    }
-    if (url.pathname === "/block/off") {
-      broadcastBlockMode(false, "http");
-      reply(200, { ok: true, blockMode: false });
-      return;
-    }
-    if (url.pathname === "/block") {
-      reply(200, { ok: true, blockMode: blockModeMirror });
-      return;
-    }
-    reply(404, { ok: false, error: "not found" });
-  });
-  blockHttpServer.on("error", (err) => {
-    console.warn("[companion][block-http] server error", err);
-  });
-  blockHttpServer.listen(BLOCK_HTTP_PORT, "127.0.0.1", () => {
-    if (isDev) {
-      console.info(
-        "[companion][block-http] listening on 127.0.0.1:" + BLOCK_HTTP_PORT
-      );
-    }
-  });
+  ensureBlockBridgeToken();
+  startBlockBridge(
+    BLOCK_HTTP_PORT,
+    {
+      onSetBlockMode: (on) => broadcastBlockMode(on, "http"),
+      getBlockMode: () => blockModeMirror,
+    },
+    isDev
+  );
 }
 
 function stopBlockHttpServer(): void {
-  if (!blockHttpServer) return;
-  blockHttpServer.close();
-  blockHttpServer = null;
+  stopBlockBridge();
 }
 
-// Renderer reports the *applied* state (in case the user toggled with
-// dev key `B`) so the HTTP /block GET stays consistent.
-ipcMain.handle("companion-report-block-mode", (_event, on: boolean) => {
+// Companion reports applied state so GET /block mirrors dev-key toggles.
+ipcMain.handle("companion-report-block-mode", (event, on: boolean) => {
+  if (!isCompanionSender(ipcGuardCtx, event)) return;
   blockModeMirror = !!on;
 });
 
 app.whenReady().then(() => {
+  assertPackagedLayout();
+  appendStartupLog(
+    `ready packaged=${app.isPackaged} version=${app.getVersion()} arch=${process.arch}`
+  );
+
   // First-run hook: enable auto-start by default (user requested, can be
   // toggled off any time from the tray).
   const settings = readSettings();
@@ -948,9 +960,11 @@ app.whenReady().then(() => {
     createLauncherWindow();
   }
 
-  // Title watcher (extension-less block detection). Fires onChange only
-  // on debounced transitions; broadcastBlockMode() dedupes against the
-  // HTTP bridge so the two sources can coexist without ceremony churn.
+  // Title watcher (extension-less block detection).
+  showCompanionWindow();
+  updateTitleWatcherSelfPids(
+    collectSelfPids([launcherWindow, companionWindow])
+  );
   void startTitleWatcher({
     isDev,
     selfPids: collectSelfPids([launcherWindow, companionWindow]),
@@ -989,11 +1003,6 @@ app.whenReady().then(() => {
     quit: () => quitApp(),
   });
 
-  // Always materialize the companion at startup. With the tray wrapping
-  // the lifecycle, the user expects the companion to appear the instant the
-  // app is up — not after pressing a launcher button. Hiding/showing is
-  // controlled from the tray afterward.
-  showCompanionWindow();
 });
 
 /**

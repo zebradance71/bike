@@ -7,6 +7,7 @@ const DEFAULT_PORT = 7727;
 
 const hostsEl = document.getElementById("hosts");
 const portEl = document.getElementById("port");
+const tokenEl = document.getElementById("token");
 const statusEl = document.getElementById("status");
 
 function flash(msg, isError) {
@@ -32,9 +33,11 @@ async function load() {
   const stored = await chrome.storage.sync.get({
     hosts: DEFAULT_HOSTS,
     port: DEFAULT_PORT,
+    token: "",
   });
   hostsEl.value = (stored.hosts || DEFAULT_HOSTS).join("\n");
   portEl.value = stored.port || DEFAULT_PORT;
+  tokenEl.value = stored.token || "";
 }
 
 async function save() {
@@ -44,7 +47,8 @@ async function save() {
     Number.isFinite(portRaw) && portRaw > 0 && portRaw < 65536
       ? portRaw
       : DEFAULT_PORT;
-  await chrome.storage.sync.set({ hosts, port });
+  const token = String(tokenEl.value || "").trim();
+  await chrome.storage.sync.set({ hosts, port, token });
   // Re-paint canonical form so the user sees the cleaned list.
   hostsEl.value = hosts.join("\n");
   portEl.value = port;

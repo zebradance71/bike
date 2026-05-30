@@ -49,7 +49,10 @@ export default defineConfig({
         },
       },
       preload: {
-        input: "electron/preload.ts",
+        input: {
+          preload: "electron/preload.ts",
+          "launcher-preload": "electron/launcher-preload.ts",
+        },
         vite: {
           build: {
             minify: "terser",
@@ -57,6 +60,12 @@ export default defineConfig({
               compress: {
                 pure_funcs: PURE_CONSOLE_FUNCS,
                 drop_debugger: true,
+              },
+            },
+            rollupOptions: {
+              output: {
+                entryFileNames: "[name].mjs",
+                inlineDynamicImports: false,
               },
             },
           },

@@ -20,6 +20,8 @@ export type AppSettings = {
   hasCompletedFirstRun: boolean;
   /** Last applied sprite size (48 / 64 / 96). Restored on next launch. */
   lastSpritePx?: number;
+  /** Loopback HTTP bridge token (POST /block). Generated on first run. */
+  blockBridgeToken?: string;
 };
 
 const DEFAULTS: AppSettings = {

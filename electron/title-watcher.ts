@@ -310,6 +310,11 @@ export function stopTitleWatcher(): void {
   ticksToUnblock = TICKS_TO_UNBLOCK_DEFAULT;
 }
 
+/** Refresh ignored PIDs after companion / launcher windows are created. */
+export function updateTitleWatcherSelfPids(pids: number[]): void {
+  selfPids = new Set(pids);
+}
+
 /**
  * Helper so main.ts can collect every Electron BrowserWindow's pid in one
  * shot. Used to populate `selfPids` so the watcher ignores our own

@@ -46,7 +46,8 @@ tools/extension/
 2. Chrome / Edge で `chrome://extensions`（Edge は `edge://extensions`）を開く。
 3. 右上の **Developer mode** を ON。
 4. **Load unpacked** → このフォルダ（`tools/extension`）を選択。
-5. ツールバーの忍者アイコン → **Options** で対象ホストとポートを調整。
+5. ツールバーの忍者アイコン → **Options** で対象ホスト・ポート・**block bridge token** を設定。
+   トークンは Ninja2 トレイ → **Copy block bridge token**。
 
 ポート番号を変更する場合はデスクトップ側も合わせて：
 
@@ -62,8 +63,10 @@ npm run dev
 - `chrome.tabs.onActivated` / `chrome.tabs.onUpdated`（active タブのみ）/
   `chrome.windows.onFocusChanged` / 1 分間隔の `alarms` で active タブの URL を
   監視。
-- ホスト名が設定リストに **suffix match** したら `GET /block/on`、外れたら
-  `GET /block/off` を 1 回ずつ送信（連打防止のため遷移時のみ）。
+- ホスト名が設定リストに **suffix match** したら `POST /block`（`on: true`）、外れたら
+  `POST /block`（`on: false`）を 1 回ずつ送信（連打防止のため遷移時のみ）。
+- **トークン必須** — Options に tray メニュー「Copy block bridge token」から
+  貼り付け。`GET /block/on|off` は CSRF 対策のため廃止（405）。
 - ステートは `chrome.storage.session` に保存。Service worker がスリープ復帰
   しても整合する。
 - ブリッジ到達失敗（コンパニオン未起動など）はコンソール warn のみ。アクション
@@ -86,11 +89,17 @@ youtube.com
 
 ## 手動テスト（拡張なし）
 
+トークンは `%APPDATA%\Ninja2\settings.json` の `blockBridgeToken`、またはトレイからコピー。
+
 ```powershell
-curl http://127.0.0.1:7727/block       # 現在状態 {"ok":true,"blockMode":false}
-curl http://127.0.0.1:7727/block/on    # 強制 ON（ブロック演出開始）
-curl http://127.0.0.1:7727/block/off   # 強制 OFF（終了演出 → idle）
+curl http://127.0.0.1:7727/block
+# {"ok":true,"blockMode":false}
+
+curl -X POST http://127.0.0.1:7727/block -H "Content-Type: application/json" -d "{\"on\":true,\"token\":\"YOUR_TOKEN\"}"
+curl -X POST http://127.0.0.1:7727/block -H "Content-Type: application/json" -d "{\"on\":false,\"token\":\"YOUR_TOKEN\"}"
 ```
+
+`GET /block/on` と `GET /block/off` は 405（状態変更は POST のみ）。
 
 ブラウザ側からは popup の **Test ping** ボタンで `GET /block` を確認できます。
 

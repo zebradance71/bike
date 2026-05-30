@@ -24,10 +24,12 @@ async function getConfig() {
   const stored = await chrome.storage.sync.get({
     hosts: DEFAULT_HOSTS,
     port: DEFAULT_PORT,
+    token: "",
   });
   return {
     hosts: Array.isArray(stored.hosts) ? stored.hosts : DEFAULT_HOSTS,
     port: Number(stored.port) || DEFAULT_PORT,
+    token: typeof stored.token === "string" ? stored.token.trim() : "",
   };
 }
 
@@ -54,11 +56,23 @@ function hostMatches(hostname, patterns) {
   });
 }
 
-async function pingCompanion(blocked, port) {
-  const path = blocked ? "/block/on" : "/block/off";
-  const url = `http://127.0.0.1:${port}${path}`;
+async function pingCompanion(blocked, port, token) {
+  if (!token) {
+    console.warn("[ninja2-ext] block bridge token not set (extension options)");
+    return;
+  }
+  const url = `http://127.0.0.1:${port}/block`;
   try {
-    await fetch(url, { method: "GET", cache: "no-store" });
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ on: blocked, token }),
+      cache: "no-store",
+    });
+    if (!res.ok) {
+      console.warn("[ninja2-ext] ping rejected", res.status, url);
+      return;
+    }
     console.debug("[ninja2-ext] ping", { url, blocked });
   } catch (err) {
     console.warn("[ninja2-ext] companion unreachable", url, err);
@@ -100,7 +114,7 @@ async function evaluateActiveTab() {
   const previous = await getLastBlocked();
   if (blocked === previous) return;
   await setLastBlocked(blocked);
-  await pingCompanion(blocked, cfg.port);
+  await pingCompanion(blocked, cfg.port, cfg.token);
 }
 
 // ---- Event wiring ----------------------------------------------------------

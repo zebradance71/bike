@@ -11,6 +11,7 @@ build/icon.png
 assets/tray.ico
 assets/tray.png
 assets/tray-*.png
+design/icon/itch-cover.png
 
 # Python bytecode / cache (frame import scripts)
 __pycache__/

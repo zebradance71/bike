@@ -26,6 +26,16 @@ def idle_frame_path() -> Path:
     return frames_dir() / "idle.png"
 
 
+def app_icon_svg_path() -> Path:
+    """Pixel SVG fallback when no raster source is present."""
+    return REPO_ROOT / "design" / "icon" / "app-icon.svg"
+
+
+def app_icon_png_path() -> Path:
+    """Canonical app/tray icon raster source (preferred when present)."""
+    return REPO_ROOT / "design" / "icon" / "app-icon-source.png"
+
+
 def resolve_assets_dir(*marker_names: str) -> Path:
     """Return repo assets/ when any marker file exists there."""
     root_assets = assets_dir()

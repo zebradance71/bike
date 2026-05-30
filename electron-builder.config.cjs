@@ -18,6 +18,11 @@ module.exports = {
     output: "dist-app",
   },
   asar: true,
+  // Native module must load from filesystem, not from inside app.asar.
+  asarUnpack: ["**/node_modules/active-win/**/*"],
+  // active-win ships N-API prebuilds (napi-6-win32-unknown-x64). Skip
+  // @electron/rebuild so local `npm run dist` works without VS Build Tools.
+  npmRebuild: false,
   files: [
     "dist/**/*",
     "dist-electron/**/*",
@@ -25,6 +30,9 @@ module.exports = {
     "branding.json",
     "!node_modules/active-win/main",
     "!node_modules/active-win/main-arm64",
+    "node_modules/active-win/**/*",
+    "!node_modules/active-win/lib/binding/napi-6-darwin-unknown-*",
+    "!node_modules/active-win/lib/binding/napi-6-linux-*",
   ],
   extraResources: [
     {
@@ -50,6 +58,7 @@ module.exports = {
     createStartMenuShortcut: true,
     shortcutName: branding.productName,
     deleteAppDataOnUninstall: false,
+    runAfterFinish: true,
     include: "build/installer.nsh",
   },
   publish: null,
