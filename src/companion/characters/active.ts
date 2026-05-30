@@ -1,5 +1,8 @@
 import { ninjaPack } from "./ninja/pack";
 
+export type { ActionKey } from "./ninja/actions";
+export { MISSION_HOLD_MS } from "./ninja/actions";
+
 /**
  * The single character pack baked into this build.
  *
