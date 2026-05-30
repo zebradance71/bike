@@ -5,7 +5,8 @@ import {
   markIdleSince,
   touchCompanionActivity,
 } from "./companionActivity";
-import { MISSION_HOLD_MS } from "../characters/ninja/actions";
+import { MISSION_HOLD_MS } from "../characters/active";
+import type { CharacterPack } from "../characters/types";
 import type { DisplaySize } from "../displaySize";
 import {
   BLOCK_GIVE_UP_MS,
@@ -72,11 +73,14 @@ function currentBlockPhase(elapsedMs: number) {
 }
 
 export function useCompanionBehavior(
+  pack: CharacterPack,
   paused: boolean,
   setSpriteSize?: (px: DisplaySize) => void
 ): CompanionBehaviorApi {
+  const characterId = pack.id;
+
   const [state, setState] = useState<CompanionState>({
-    id: "ninja",
+    id: characterId,
     action: "idle",
     facing: "right",
   });
@@ -119,8 +123,8 @@ export function useCompanionBehavior(
     markIdleSince();
     const timing = getCompanionTiming();
     sitIdleGateMs.current = nextDelay(timing.sitIdleBefore);
-    setState({ id: "ninja", action: "idle", facing });
-  }, []);
+    setState({ id: characterId, action: "idle", facing });
+  }, [characterId]);
 
   const resetToIdle = useCallback(
     (facing?: "left" | "right") => {
@@ -132,7 +136,7 @@ export function useCompanionBehavior(
   const beginMission = useCallback((facing?: "left" | "right") => {
     touchCompanionActivity();
     setState({
-      id: "ninja",
+      id: characterId,
       action: "mission",
       facing: facing ?? pickFacing(),
     });
@@ -141,7 +145,7 @@ export function useCompanionBehavior(
   const beginSmoke = useCallback((facing?: "left" | "right") => {
     touchCompanionActivity();
     setState({
-      id: "ninja",
+      id: characterId,
       action: "smoke",
       facing: facing ?? pickFacing(),
     });
@@ -150,7 +154,7 @@ export function useCompanionBehavior(
   const beginShiftSmoke = useCallback((facing?: "left" | "right") => {
     touchCompanionActivity();
     setState({
-      id: "ninja",
+      id: characterId,
       action: "shiftSmoke",
       facing: facing ?? pickFacing(),
     });
@@ -159,7 +163,7 @@ export function useCompanionBehavior(
   const beginPose = useCallback((facing?: "left" | "right") => {
     touchCompanionActivity();
     setState({
-      id: "ninja",
+      id: characterId,
       action: "pose",
       facing: facing ?? pickFacing(),
     });
@@ -168,7 +172,7 @@ export function useCompanionBehavior(
   const beginWalk = useCallback((facing?: "left" | "right") => {
     touchCompanionActivity();
     setState({
-      id: "ninja",
+      id: characterId,
       action: "walk",
       facing: facing ?? pickFacing(),
     });
@@ -177,7 +181,7 @@ export function useCompanionBehavior(
   const beginRun = useCallback((facing?: "left" | "right") => {
     touchCompanionActivity();
     setState({
-      id: "ninja",
+      id: characterId,
       action: "run",
       facing: facing ?? pickFacing(),
     });
@@ -186,7 +190,7 @@ export function useCompanionBehavior(
   const beginLook = useCallback((facing?: "left" | "right") => {
     touchCompanionActivity();
     setState({
-      id: "ninja",
+      id: characterId,
       action: "look",
       facing: facing ?? pickFacing(),
     });
@@ -195,7 +199,7 @@ export function useCompanionBehavior(
   const beginKunai = useCallback((facing?: "left" | "right") => {
     touchCompanionActivity();
     setState({
-      id: "ninja",
+      id: characterId,
       action: "kunai",
       facing: facing ?? pickFacing(),
     });

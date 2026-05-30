@@ -1,4 +1,4 @@
-import { MISSION_HOLD_MS } from "../characters/ninja/actions";
+import { MISSION_HOLD_MS } from "../characters/active";
 
 export type TimingRange = { min: number; max: number };
 

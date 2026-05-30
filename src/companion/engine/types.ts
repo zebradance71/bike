@@ -1,11 +1,10 @@
-/** Future companions (SAMURAI, ZEN, …) — types only for v1 */
-export type { ActionKey as NinjaActionKey } from "../characters/ninja/actions";
+import type { ActionKey } from "../characters/active";
 
-import type { ActionKey as NinjaActionKey } from "../characters/ninja/actions";
+export type { ActionKey as NinjaActionKey } from "../characters/active";
 
-export type CompanionId = "ninja";
+export type CompanionId = string;
 
-export type CompanionAction = NinjaActionKey;
+export type CompanionAction = ActionKey;
 
 export interface CompanionState {
   id: CompanionId;

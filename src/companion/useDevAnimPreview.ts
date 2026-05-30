@@ -1,22 +1,16 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { activeCharacter } from "./characters/active";
+import {
+  buildDevKeyBindings,
+  resolveDevKeyAction,
+} from "./characters/devKeys";
 import { touchCompanionActivity } from "./engine/companionActivity";
 import {
   useCompanionBehavior,
   type CompanionBehaviorApi,
 } from "./engine/useCompanionBehavior";
-import type { ActionKey } from "./characters/ninja/actions";
 import type { DisplaySize } from "./displaySize";
 import { useDisplaySize } from "./useDisplaySize";
-
-const DEV_KEY_ACTION: Partial<Record<string, ActionKey>> = {
-  KeyW: "walk",
-  KeyP: "pose",
-  KeyS: "smoke",
-  KeyM: "mission",
-  KeyR: "run",
-  KeyL: "look",
-  KeyK: "kunai",
-};
 
 export type CompanionAppController = CompanionBehaviorApi & {
   replaySeq: number;
@@ -28,16 +22,49 @@ export type CompanionAppController = CompanionBehaviorApi & {
   setSpriteSize: (px: DisplaySize) => void;
 };
 
+function dispatchDevAction(
+  action: string,
+  behavior: CompanionBehaviorApi
+): void {
+  switch (action) {
+    case "walk":
+      behavior.beginWalk();
+      break;
+    case "pose":
+      behavior.beginPose();
+      break;
+    case "smoke":
+      behavior.beginSmoke();
+      break;
+    case "shiftSmoke":
+      behavior.beginShiftSmoke();
+      break;
+    case "mission":
+      behavior.beginMission();
+      break;
+    case "run":
+      behavior.beginRun();
+      break;
+    case "look":
+      behavior.beginLook();
+      break;
+    case "kunai":
+      behavior.beginKunai();
+      break;
+    default:
+      behavior.resetToIdle();
+  }
+}
+
 /** Shared companion state + dev key triggers. */
 export function useCompanionApp(): CompanionAppController {
-  // Autonomous loop is always on. Dev keys (W/M/L/K/S) interrupt the current
-  // action immediately and the autonomous scheduler resumes after the next
-  // idle window. Previously this was `import.meta.env.DEV` which silently
-  // disabled idle->action picking + wall-stuck rescue during dev, making
-  // it impossible to verify production behavior without making a release.
   const paused = false;
   const [spriteSize, setSpriteSize] = useDisplaySize();
-  const behavior = useCompanionBehavior(paused, setSpriteSize);
+  const behavior = useCompanionBehavior(activeCharacter, paused, setSpriteSize);
+  const devKeyBindings = useMemo(
+    () => buildDevKeyBindings(activeCharacter),
+    []
+  );
   const [replaySeq, setReplaySeq] = useState(0);
   const [idleResetSeq, setIdleResetSeq] = useState(0);
   const [showActionDebug, setShowActionDebug] = useState(false);
@@ -65,9 +92,6 @@ export function useCompanionApp(): CompanionAppController {
         return;
       }
 
-      // Dev shortcut: toggle block-mode disruption loop. Lets us verify the
-      // open/close ceremonies and phase-transitions without a real browser
-      // tab event from the host.
       if (e.code === "KeyB") {
         e.preventDefault();
         touchCompanionActivity();
@@ -75,48 +99,21 @@ export function useCompanionApp(): CompanionAppController {
         return;
       }
 
-      const action = DEV_KEY_ACTION[e.code];
+      const action = resolveDevKeyAction(
+        devKeyBindings,
+        e.code,
+        e.shiftKey
+      );
       if (!action) return;
       e.preventDefault();
       touchCompanionActivity();
       bumpReplay();
-
-      if (e.code === "KeyS" && e.shiftKey) {
-        behavior.beginShiftSmoke();
-        return;
-      }
-
-      switch (action) {
-        case "walk":
-          behavior.beginWalk();
-          break;
-        case "pose":
-          behavior.beginPose();
-          break;
-        case "smoke":
-          behavior.beginSmoke();
-          break;
-        case "mission":
-          behavior.beginMission();
-          break;
-        case "run":
-          behavior.beginRun();
-          break;
-        case "look":
-          behavior.beginLook();
-          break;
-        case "kunai":
-          behavior.beginKunai();
-          break;
-        default:
-          behavior.resetToIdle();
-          setIdleResetSeq((n) => n + 1);
-      }
+      dispatchDevAction(action, behavior);
     };
 
     document.addEventListener("keydown", onKey, true);
     return () => document.removeEventListener("keydown", onKey, true);
-  }, [behavior, bumpReplay, toggleActionDebug]);
+  }, [behavior, bumpReplay, devKeyBindings, toggleActionDebug]);
 
   return {
     ...behavior,
