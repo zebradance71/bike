@@ -8,6 +8,7 @@ import {
   startTitleWatcher,
   stopTitleWatcher,
 } from "./title-watcher";
+import { branding } from "./branding";
 import { createAppTray, destroyAppTray, refreshTrayMenu } from "./tray";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -776,7 +777,9 @@ ipcMain.handle("companion-restore-position", async (_event, durationMs: number) 
  * The companion renderer holds the canonical state; main only forwards
  * the requested transition via `webContents.send("companion-block-mode", on)`.
  */
-const BLOCK_HTTP_PORT = Number(process.env.NINJA_BLOCK_PORT ?? 7727);
+const BLOCK_HTTP_PORT = Number(
+  process.env.NINJA_BLOCK_PORT ?? branding.blockBridgePort
+);
 let blockHttpServer: Server | null = null;
 let blockModeMirror = false; // best-effort echo of last request
 

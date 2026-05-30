@@ -27,6 +27,7 @@ import {
 } from "electron";
 import { existsSync } from "fs";
 import path from "path";
+import { branding } from "./branding";
 import { readSettings, writeSettings } from "./settings-store";
 
 /**
@@ -97,12 +98,14 @@ function rebuildMenu(): void {
 
   const template: MenuItemConstructorOptions[] = [
     {
-      label: `Ninja2 — ${visible ? "running" : "hidden"}`,
+      label: `${branding.productName} — ${visible ? "running" : "hidden"}`,
       enabled: false,
     },
     { type: "separator" },
     {
-      label: visible ? "Hide ninja" : "Show ninja",
+      label: visible
+        ? `Hide ${branding.displayName}`
+        : `Show ${branding.displayName}`,
       click: () => {
         if (visible) deps?.hideCompanion();
         else deps?.showCompanion();
@@ -175,7 +178,7 @@ function rebuildMenu(): void {
     },
     { type: "separator" },
     {
-      label: "Quit Ninja2",
+      label: `Quit ${branding.productName}`,
       click: () => deps?.quit(),
     },
   ];
@@ -190,7 +193,7 @@ export function createAppTray(d: TrayDeps): Tray | null {
   try {
     const icon = loadTrayIcon(d.iconCandidates);
     tray = new Tray(icon);
-    tray.setToolTip("Ninja2");
+    tray.setToolTip(branding.productName);
     tray.on("click", () => {
       // Left-click toggle. Some Linux distros don't fire `click` reliably;
       // the right-click menu is the canonical fallback.
