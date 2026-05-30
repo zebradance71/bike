@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 28" shape-rendering="crispEdges">
+  <title>B1+B2 adopted idle</title>
+  <rect x="8" y="27" width="8" height="1" fill="#0c0c10" opacity="0.22"/>
+  <rect x="4" y="5" width="16" height="3" fill="#c85848"/>
+  <rect x="5" y="6" width="14" height="1" fill="#d87060" opacity="0.55"/>
+  <rect x="6" y="8" width="12" height="10" fill="#14141c"/>
+  <rect x="7" y="16" width="10" height="1" fill="#0c0c10"/>
+  <rect x="8" y="12" width="2" height="2" fill="#8aa8b8"/>
+  <rect x="14" y="12" width="2" height="2" fill="#8aa8b8"/>
+  <rect x="8" y="17" width="8" height="5" fill="#1e1e28"/>
+  <rect x="8" y="22" width="3" height="5" fill="#0c0c10"/>
+  <rect x="13" y="22" width="3" height="5" fill="#0c0c10"/>
+</svg>

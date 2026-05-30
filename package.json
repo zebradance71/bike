@@ -1,0 +1,106 @@
+{
+  "name": "ninja",
+  "type": "module",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Silent Ninja Companion — a small desktop friend",
+  "author": "ToriiLabs",
+  "license": "Proprietary",
+  "main": "dist-electron/main.js",
+  "scripts": {
+    "predev": "node -e \"try{require('child_process').execSync('py -3 scripts/build-tray-icon.py',{stdio:'inherit'})}catch(e){console.log('[predev] tray-icon build skipped (Python or Pillow missing). Tray will fall back to idle.png at runtime.')}\"",
+    "dev": "vite",
+    "build": "vite build",
+    "build:tray": "py -3 scripts/build-tray-icon.py",
+    "build:icon": "py -3 scripts/build-app-icon.py",
+    "build:icons": "npm run build:tray && npm run build:icon",
+    "start": "npm run build && electron .",
+    "predist": "node -e \"try{require('child_process').execSync('py -3 scripts/build-app-icon.py && py -3 scripts/build-tray-icon.py',{stdio:'inherit'})}catch(e){console.log('[predist] icon build skipped (Python missing). Falling back to placeholder icons; ship-quality icons require running npm run build:icons.')}\"",
+    "dist": "vite build && electron-builder",
+    "dist:dir": "vite build && electron-builder --dir",
+    "dist:portable": "vite build && electron-builder --win portable zip",
+    "dist:installer": "vite build && electron-builder --win nsis",
+    "regen:presence": "py -3 scripts/restore-presence-frames.py",
+    "regen:display": "py -3 scripts/regen-all-display.py",
+    "regen:frames": "py -3 scripts/fix-frame-alpha.py"
+  },
+  "dependencies": {
+    "active-win": "^8.2.1",
+    "framer-motion": "^11.18.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.4.20",
+    "electron": "^33.3.1",
+    "electron-builder": "^25.1.8",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.17",
+    "terser": "^5.36.0",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.7",
+    "vite-plugin-electron": "^0.28.8",
+    "vite-plugin-electron-renderer": "^0.14.6"
+  },
+  "build": {
+    "appId": "com.toriilabs.ninja2",
+    "productName": "Ninja2",
+    "copyright": "Copyright © 2026 ToriiLabs",
+    "directories": {
+      "buildResources": "build",
+      "output": "dist-app"
+    },
+    "asar": true,
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*",
+      "package.json",
+      "!node_modules/active-win/main",
+      "!node_modules/active-win/main-arm64"
+    ],
+    "extraResources": [
+      {
+        "from": "assets/",
+        "to": "assets/",
+        "filter": [
+          "tray.ico",
+          "tray.png",
+          "tray-*.png"
+        ]
+      }
+    ],
+    "win": {
+      "icon": "build/icon.ico",
+      "artifactName": "${productName}-${version}-${arch}.${ext}",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "allowElevation": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Ninja2",
+      "deleteAppDataOnUninstall": false,
+      "include": "build/installer.nsh"
+    },
+    "publish": null
+  }
+}

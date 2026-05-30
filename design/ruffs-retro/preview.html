@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>NINJA Retro Ruffs</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 2rem;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: #c8c4bc;
+      color: #1a1a2e;
+    }
+    h1 { font-size: 1.1rem; letter-spacing: 0.15em; }
+    .sub { font-size: 0.8rem; color: #444; margin-bottom: 1.5rem; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.25rem;
+    }
+    .card {
+      background: #2a2a32;
+      border-radius: 12px;
+      padding: 1rem;
+      color: #e8e4dc;
+    }
+    .card h2 { margin: 0 0 0.2rem; font-size: 0.95rem; }
+    .tag { font-size: 0.65rem; color: #c45c3e; }
+    .desc { font-size: 0.75rem; color: #aaa; line-height: 1.45; margin: 0.5rem 0 0.75rem; }
+    .row { display: flex; align-items: flex-end; gap: 1rem; flex-wrap: wrap; }
+    .cell {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.25rem;
+      font-size: 0.6rem;
+      color: #888;
+    }
+    .cell img {
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+      background: #3d3d48;
+      border-radius: 4px;
+    }
+    .s24 img { width: 24px; height: 28px; }
+    .s32 img { width: 32px; height: 37px; }
+    .s48 img { width: 48px; height: 56px; }
+    .poses { margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid #444; }
+    .poses span { font-size: 0.65rem; color: #777; display: block; margin-bottom: 0.35rem; }
+    .note {
+      margin-top: 2rem;
+      max-width: 560px;
+      font-size: 0.8rem;
+      line-height: 1.55;
+      color: #333;
+    }
+  </style>
+</head>
+<body>
+  <h1>NINJA — Retro / Blocky ラフ</h1>
+  <p class="sub">24×28px グリッド基準 · SNES/GBA 系 · LEGO 非参照</p>
+
+  <div class="grid">
+    <article class="card">
+      <span class="tag">R1</span>
+      <h2>GBA Dot</h2>
+      <p class="desc">階段状の丸ブロック。cozy・住み着き。walk / sit 映え重視。</p>
+      <div class="row">
+        <div class="cell s24"><img src="r1-gba-dot.svg" alt="" />24px idle</div>
+        <div class="cell s32"><img src="r1-gba-dot.svg" alt="" />32px</div>
+        <div class="cell s48"><img src="r1-gba-dot.svg" alt="" />48px</div>
+      </div>
+      <div class="poses row">
+        <span>poses @ 48px</span>
+        <div class="cell s48"><img src="r1-gba-dot-walk.svg" alt="" />walk</div>
+        <div class="cell s48"><img src="r1-gba-dot-sit.svg" alt="" />sit</div>
+      </div>
+    </article>
+
+    <article class="card">
+      <span class="tag">R2</span>
+      <h2>SNES Chunk</h2>
+      <p class="desc">尖りフード・楔形。レトロ忍者感が最強。クール寄り。</p>
+      <div class="row">
+        <div class="cell s24"><img src="r2-snes-chunk.svg" alt="" />24px idle</div>
+        <div class="cell s32"><img src="r2-snes-chunk.svg" alt="" />32px</div>
+        <div class="cell s48"><img src="r2-snes-chunk.svg" alt="" />48px</div>
+      </div>
+      <div class="poses row">
+        <span>poses @ 48px</span>
+        <div class="cell s48"><img src="r2-snes-chunk-walk.svg" alt="" />walk</div>
+        <div class="cell s48"><img src="r2-snes-chunk-sit.svg" alt="" />sit</div>
+      </div>
+    </article>
+
+    <article class="card">
+      <span class="tag">R3</span>
+      <h2>Desktop Icon</h2>
+      <p class="desc">情報量最小。24px 最優先。静かな OS コンパニオン。</p>
+      <div class="row">
+        <div class="cell s24"><img src="r3-desktop-icon.svg" alt="" />24px idle</div>
+        <div class="cell s32"><img src="r3-desktop-icon.svg" alt="" />32px</div>
+        <div class="cell s48"><img src="r3-desktop-icon.svg" alt="" />48px</div>
+      </div>
+      <div class="poses row">
+        <span>poses @ 48px</span>
+        <div class="cell s48"><img src="r3-desktop-icon-sit.svg" alt="" />sit</div>
+      </div>
+    </article>
+  </div>
+
+  <p class="note">
+    現行キャラとの差: 楕円・グラデ・ぼかし目をやめ、<strong>1px グリッドのフラット塗り</strong>のみ。<br />
+    採用案（R1 / R2 / R3 または組み合わせ）を指定後、アプリへ実装します。Phase 3・機能追加なし。
+  </p>
+</body>
+</html>

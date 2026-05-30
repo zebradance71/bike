@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 28" shape-rendering="crispEdges">
+  <title>R1 GBA Dot  walk frame</title>
+  <rect x="7" y="27" width="10" height="1" fill="#12121a" opacity="0.25"/>
+  <rect x="6" y="6" width="12" height="2" fill="#b84e38"/>
+  <rect x="5" y="4" width="14" height="2" fill="#252530"/>
+  <rect x="4" y="6" width="16" height="2" fill="#252530"/>
+  <rect x="4" y="8" width="16" height="4" fill="#252530"/>
+  <rect x="5" y="12" width="14" height="2" fill="#12121a"/>
+  <rect x="8" y="10" width="1" height="1" fill="#6a8a96"/>
+  <rect x="15" y="10" width="1" height="1" fill="#6a8a96"/>
+  <rect x="7" y="14" width="10" height="6" fill="#252530"/>
+  <rect x="8" y="20" width="8" height="2" fill="#12121a"/>
+  <!-- stride -->
+  <rect x="7" y="21" width="3" height="5" fill="#12121a"/>
+  <rect x="14" y="23" width="3" height="3" fill="#12121a"/>
+  <rect x="17" y="16" width="3" height="1" fill="#252530"/>
+</svg>

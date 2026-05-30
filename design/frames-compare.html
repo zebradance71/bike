@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>NINJA frames — idle / sit / walk / peek</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: system-ui, sans-serif;
+      background: #e8e4dc;
+      margin: 0;
+      padding: 24px;
+      color: #2a3040;
+    }
+    h1 { font-size: 1rem; font-weight: 600; margin: 0 0 4px; }
+    h2 { font-size: 0.85rem; font-weight: 600; margin: 28px 0 8px; opacity: 0.85; }
+    p { font-size: 0.8rem; margin: 0 0 16px; opacity: 0.75; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, auto);
+      gap: 20px 28px;
+      align-items: end;
+    }
+    .cell { text-align: center; }
+    .cell span {
+      display: block;
+      font-size: 0.7rem;
+      margin-bottom: 6px;
+      opacity: 0.7;
+    }
+    .stage {
+      background: repeating-conic-gradient(#ccc 0% 25%, #fff 0% 50%) 50% / 12px 12px;
+      border-radius: 4px;
+      padding: 8px;
+      display: inline-flex;
+      align-items: flex-end;
+      justify-content: center;
+      min-height: 120px;
+    }
+    .stage img {
+      display: block;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+    .s48 { height: 48px; width: auto; }
+    .s64 { height: 64px; width: auto; }
+    .s96 { height: 96px; width: auto; }
+    .row-label {
+      grid-column: 1;
+      text-align: right;
+      font-size: 0.75rem;
+      align-self: center;
+      padding-right: 8px;
+    }
+    .cycle {
+      display: flex;
+      gap: 12px;
+      align-items: flex-end;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+    .cycle .stage { min-height: 80px; }
+  </style>
+</head>
+<body>
+  <h1>同一キャラ比較 — idle / sit / walk / peek</h1>
+  <p>チェッカー背景。48 / 64 / 96px 高さ（下端揃え）。同一キャラ・ポーズ読み取りを確認。</p>
+
+  <h2>Look around（64px・横並び）</h2>
+  <div class="cycle">
+    <div class="cell"><span>look-1</span><div class="stage"><img class="s64" src="../src/companion/assets/frames/look-1.png" alt="" /></div></div>
+    <div class="cell"><span>look-2 L</span><div class="stage"><img class="s64" src="../src/companion/assets/frames/look-2.png" alt="" /></div></div>
+    <div class="cell"><span>look-3 R</span><div class="stage"><img class="s64" src="../src/companion/assets/frames/look-3.png" alt="" /></div></div>
+    <div class="cell"><span>look-4</span><div class="stage"><img class="s64" src="../src/companion/assets/frames/look-4.png" alt="" /></div></div>
+  </div>
+
+  <h2>Idle サイクル（64px・横並び）</h2>
+  <div class="cycle">
+    <div class="cell"><span>idle-1</span><div class="stage"><img class="s64" src="../src/companion/assets/frames/idle-1.png" alt="" /></div></div>
+    <div class="cell"><span>idle-2</span><div class="stage"><img class="s64" src="../src/companion/assets/frames/idle-2.png" alt="" /></div></div>
+    <div class="cell"><span>idle-3</span><div class="stage"><img class="s64" src="../src/companion/assets/frames/idle-3.png" alt="" /></div></div>
+    <div class="cell"><span>idle-4</span><div class="stage"><img class="s64" src="../src/companion/assets/frames/idle-4.png" alt="" /></div></div>
+    <div class="cell"><span>blink</span><div class="stage"><img class="s64" src="../src/companion/assets/frames/blink.png" alt="" /></div></div>
+  </div>
+
+  <h2>Idle base（64px）</h2>
+  <div class="cycle">
+    <div class="cell"><span>idle-base-tight</span><div class="stage"><img class="s64" src="../src/companion/assets/frames/idle-base-tight.png" alt="" /></div></div>
+    <div class="cell"><span>idle-1 (ref)</span><div class="stage"><img class="s64" src="../src/companion/assets/frames/idle-1.png" alt="" /></div></div>
+  </div>
+
+  <h2>Smoke teleport（64px・順再生）</h2>
+  <div class="cycle">
+    <div class="cell"><span>smoke-start</span><div class="stage"><img class="s64" src="../src/companion/assets/frames/smoke-start.png" alt="" /></div></div>
+    <div class="cell"><span>smoke-run</span><div class="stage"><img class="s64" src="../src/companion/assets/frames/smoke-run.png" alt="" /></div></div>
+    <div class="cell"><span>smoke-only</span><div class="stage"><img class="s64" src="../src/companion/assets/frames/smoke-only.png" alt="" /></div></div>
+    <div class="cell"><span>smoke-arrive</span><div class="stage"><img class="s64" src="../src/companion/assets/frames/smoke-arrive.png" alt="" /></div></div>
+  </div>
+
+  <h2>Sit（64px・横並び）</h2>
+  <div class="cycle">
+    <div class="cell"><span>idle</span><div class="stage"><img class="s64" src="../src/companion/assets/frames/idle.png" alt="" /></div></div>
+    <div class="cell"><span>sit-1</span><div class="stage"><img class="s64" src="../src/companion/assets/frames/sit-1.png" alt="" /></div></div>
+    <div class="cell"><span>sit-2</span><div class="stage"><img class="s64" src="../src/companion/assets/frames/sit-2.png" alt="" /></div></div>
+  </div>
+
+  <h2>Walk サイクル（64px・横並び）</h2>
+  <div class="cycle">
+    <div class="cell"><span>idle</span><div class="stage"><img class="s64" src="../src/companion/assets/frames/idle.png" alt="" /></div></div>
+    <div class="cell"><span>walk-1</span><div class="stage"><img class="s64" src="../src/companion/assets/frames/walk-1.png" alt="" /></div></div>
+    <div class="cell"><span>walk-2</span><div class="stage"><img class="s64" src="../src/companion/assets/frames/walk-2.png" alt="" /></div></div>
+    <div class="cell"><span>walk-3</span><div class="stage"><img class="s64" src="../src/companion/assets/frames/walk-3.png" alt="" /></div></div>
+    <div class="cell"><span>walk-4</span><div class="stage"><img class="s64" src="../src/companion/assets/frames/walk-4.png" alt="" /></div></div>
+  </div>
+
+  <h2>行ごと比較</h2>
+  <div class="grid" id="rows"></div>
+
+  <script>
+    const frames = [
+      'idle-base', 'idle-1', 'look-1', 'look-2', 'look-3', 'look-4', 'blink',
+      'sit-1', 'sit-2',
+      'walk-1', 'walk-2', 'walk-3', 'walk-4',
+      'peek-1', 'peek-2', 'peek-3',
+    ];
+    const base = '../src/companion/assets/frames/';
+    const grid = document.getElementById('rows');
+    const header = `
+      <div></div>
+      <div class="cell"><span>48px</span></div>
+      <div class="cell"><span>64px</span></div>
+      <div class="cell"><span>96px</span></div>`;
+    grid.insertAdjacentHTML('beforeend', header);
+    for (const name of frames) {
+      grid.insertAdjacentHTML('beforeend', `
+        <div class="row-label">${name}</div>
+        <div class="cell"><div class="stage"><img class="s48" src="${base}${name}.png" alt="" /></div></div>
+        <div class="cell"><div class="stage"><img class="s64" src="${base}${name}.png" alt="" /></div></div>
+        <div class="cell"><div class="stage"><img class="s96" src="${base}${name}.png" alt="" /></div></div>
+      `);
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>NINJA — Blade Compare</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      background: #e8e4dc;
+      padding: 2rem;
+      color: #1a1a2e;
+    }
+    .row {
+      display: flex;
+      gap: 2rem;
+      flex-wrap: wrap;
+      margin-top: 1rem;
+    }
+    .card {
+      background: #3d3d48;
+      padding: 1.25rem;
+      border-radius: 12px;
+      text-align: center;
+    }
+    .card h2 { color: #f5f0e8; font-size: 0.9rem; margin: 0 0 0.75rem; }
+    .card p { color: #aaa; font-size: 0.7rem; margin: 0.5rem 0 0; max-width: 140px; }
+    img {
+      width: 48px;
+      height: 56px;
+      image-rendering: pixelated;
+      background: #2a2a32;
+      border-radius: 4px;
+    }
+    .sizes { display: flex; gap: 1rem; justify-content: center; margin-top: 0.5rem; }
+    .sizes img { width: 24px; height: 28px; }
+    code { background: #ddd; padding: 0.1em 0.35em; border-radius: 4px; font-size: 0.8rem; }
+  </style>
+</head>
+<body>
+  <h1>刀 — 比較</h1>
+  <p>採用は <code>src/companion/ninja/bladeVariant.ts</code> の <code>BLADE_VARIANT</code> を <code>'hidden'</code> または <code>'subtle'</code> に変更。</p>
+
+  <div class="row">
+    <div class="card">
+      <h2>非表示</h2>
+      <img src="../src/companion/ninja/blade-preview-hidden.svg" alt="hidden" width="48" height="56" />
+      <div class="sizes">
+        <img src="../src/companion/ninja/blade-preview-hidden.svg" alt="24px" width="24" height="28" />
+      </div>
+      <p>ノイズなし。小サイズ向き。</p>
+    </div>
+    <div class="card">
+      <h2>超控えめ</h2>
+      <img src="../src/companion/ninja/blade-preview-subtle.svg" alt="subtle" width="48" height="56" />
+      <div class="sizes">
+        <img src="../src/companion/ninja/blade-preview-subtle.svg" alt="24px" width="24" height="28" />
+      </div>
+      <p>1本線・低不透明度。忍者感のヒントのみ。</p>
+    </div>
+  </div>
+</body>
+</html>

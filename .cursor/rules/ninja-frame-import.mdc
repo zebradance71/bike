@@ -1,0 +1,136 @@
+---
+
+description: Ninja companion sprite import — S / Shift+S / M magenta cell workflow
+
+globs: scripts/**/*.py,src/companion/assets/frames/**
+
+alwaysApply: true
+
+---
+
+
+
+# Ninja frame import (必須)
+
+
+
+## 画像生成
+
+
+
+- **透過 PNG を作らない**
+
+- 背景: `solid #FF00FF magenta background only, no transparency, no black, no checkerboard`
+
+- **参照シートを添付**し、**1ポーズ1枚**マゼンタで生成（黒シート／黒塗り plate を import しない）
+
+
+
+## S / Shift+S 手順
+
+
+
+1. ユーザー参照シート（3列）を受け取る
+
+2. 参照付きで列ごとに生成 → `assets/*-magenta.png` 3枚
+
+   - S: `smoke-sit-enter-magenta`, `smoke-sit-rest-a-magenta`, `smoke-sit-rest-b-magenta`
+
+   - Shift+S: `shift-smoke-enter-magenta`, `shift-smoke-rest-a-magenta`, `shift-smoke-rest-b-magenta`
+
+3. `py -3 scripts/import-smoke-sit-from-magenta-cells.py` または `import-shift-smoke-from-magenta-cells.py`
+
+4. ログが `chroma sheet - key only, no black paint` であること
+
+5. `FRAME_ASSET_REV` bump、dev 再起動案内
+
+
+
+## RUN（R）手順 — 2×2 シート
+
+1. ユーザー参照 **2×2 シート** を受け取る（左上=run-a, 右上=run-b, 左下=run-c, 右下=run-d）
+2. `py -3 scripts/extract-run-cell-refs.py` → `assets/run-ref/run-{a,b,c,d}-ref.png`
+3. **各 *-ref.png を添付**して 1ポーズ1枚マゼンタ生成 → `assets/run-{a,b,c,d}-magenta.png`
+4. `py -3 scripts/import-run-from-magenta-cells.py`
+5. `FRAME_ASSET_REV` bump
+6. 状態機械（`useNinjaActionLayers.ts`）: base=`run-c`、`RUN_SCAN_CHANCE` で `run-b` / `run-d` に一時遷移 → 戻る → `RUN_HOLD_MS` 経過で idle
+
+## P（pose / peek）手順 — 同じワークフロー、頭は下端配置
+
+1. ユーザー参照シート（3列、覗き頭のみ）を受け取る
+2. `py -3 scripts/extract-pose-cell-refs.py` → `assets/pose-ref/peek-N-ref.png` 3枚
+3. **各 *-ref.png を添付**して 1ポーズ1枚マゼンタ生成 → `assets/`:
+   - `peek-1-magenta.png`, `peek-2-magenta.png`, `peek-3-magenta.png`
+4. `py -3 scripts/import-pose-from-magenta-cells.py`
+   - 専用 compose: 頭の幅を `idle char_w × 0.78` にスケール、**canvas 下端から 6px 上**に配置
+   - これで下から覗き込む見た目になる
+5. `FRAME_ASSET_REV` bump
+
+## M（mission）手順 — 同じワークフロー
+
+
+
+1. 参照 **2×3 シート**（**左上セルだけ** M 用5コマに含めない — 待機 `idle` の表示を止める意味ではない）
+
+2. `py -3 scripts/extract-mission-cell-refs.py` → `assets/mission-ref/*-ref.png` 5枚
+
+3. **各 *-ref.png を添付**して 1ポーズ1枚マゼンタ生成 → `assets/`:
+
+   - `mission-run-magenta.png`
+
+   - `mission-start-magenta.png`
+
+   - `smoke-only-magenta.png`
+
+   - `smoke-big-magenta.png`
+
+   - `mission-arrive-magenta.png`
+
+4. `py -3 scripts/import-mission-from-magenta-cells.py`
+
+5. ログ `chroma sheet - key only, no black paint` を確認
+
+6. `FRAME_ASSET_REV` bump
+
+
+
+| セル | 出力 stem |
+
+|------|-----------|
+
+| 左上 | （M用に使わない）`idle.png` は触らない |
+
+| 右上 | mission-run |
+
+| 中左 | mission-start |
+
+| 中右 | smoke-only |
+
+| 下左 | smoke-big |
+
+| 下右 | mission-arrive |
+
+
+
+## compose（`frame_import_common.py`）
+
+
+
+- bbox + 36px、512×512、待機 idle と同高、足元 FOOT_Y
+
+- `key_chroma_border` + trapped strict magenta + 軽い `despill_magenta_fringe`
+
+
+
+## 禁止
+
+
+
+- 黒シートを `paint_black_matte_to_magenta_plate` だけで M/S を完結させる
+
+- `import-mission-frames.py` のようなシート直 import（削除済み — magenta cells のみ）
+
+- 参照なし GenerateImage だけで別デザインを作る
+
+- 黒 border flood / 透過 PNG 生成
+

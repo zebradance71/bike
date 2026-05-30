@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>E refined — 48px test</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 1.5rem;
+      font-family: system-ui, sans-serif;
+      background: #d8d4cc;
+      color: #1a2238;
+    }
+    h1 { font-size: 1rem; margin: 0; }
+    .sub { font-size: 0.78rem; color: #444; line-height: 1.5; max-width: 560px; margin: 0.5rem 0 1.25rem; }
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+      align-items: flex-start;
+    }
+    .card {
+      background: #f5f0e8;
+      border-radius: 12px;
+      padding: 1rem;
+      min-width: 200px;
+    }
+    .card h2 { font-size: 0.85rem; margin: 0 0 0.5rem; }
+    .card.refined h2 { color: #c05040; }
+    .full img { max-width: 140px; display: block; margin: 0 auto 0.75rem; }
+    .sizes {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      padding: 0.75rem;
+      background: #2a3548;
+      border-radius: 8px;
+    }
+    .cell { text-align: center; font-size: 0.6rem; color: #9ab4c0; }
+    .cell img {
+      display: block;
+      margin: 0 auto 0.2rem;
+      object-fit: contain;
+      background: #3a4a62;
+      border-radius: 2px;
+    }
+    .s48 img { width: 48px; height: 48px; }
+    .s64 img { width: 64px; height: 64px; }
+    .s96 img { width: 96px; height: 96px; }
+    .q {
+      margin-top: 1.25rem;
+      padding: 0.85rem 1rem;
+      background: #1e2840;
+      color: #c8d4dc;
+      border-radius: 8px;
+      font-size: 0.74rem;
+      line-height: 1.6;
+      max-width: 560px;
+    }
+    .q strong { color: #e07060; }
+  </style>
+</head>
+<body>
+  <h1>E リファイン — 48px テスト</h1>
+  <p class="sub">
+    E 85% + D 15%（頭やわらか・目やや大・胴ふっくら・帯・navy 維持）。
+    sprite 化はまだしない。<strong>48px ★</strong> で 0.3秒テスト。
+  </p>
+
+  <div class="row">
+    <article class="card">
+      <h2>E 初稿（参考）</h2>
+      <div class="full"><img src="images/char-concept-e-silhouette-icon.png" alt="E original" /></div>
+      <div class="sizes">
+        <div class="cell s48"><img src="images/char-concept-e-silhouette-icon.png" alt="" />48px</div>
+        <div class="cell s64"><img src="images/char-concept-e-silhouette-icon.png" alt="" />64</div>
+        <div class="cell s96"><img src="images/char-concept-e-silhouette-icon.png" alt="" />96</div>
+      </div>
+    </article>
+
+    <article class="card refined">
+      <h2>E リファイン（採用候補）</h2>
+      <div class="full"><img src="images/char-concept-e-refined.png" alt="E refined" /></div>
+      <div class="sizes">
+        <div class="cell s48"><img src="images/char-concept-e-refined.png" alt="" />48px ★</div>
+        <div class="cell s64"><img src="images/char-concept-e-refined.png" alt="" />64</div>
+        <div class="cell s96"><img src="images/char-concept-e-refined.png" alt="" />96</div>
+      </div>
+    </article>
+  </div>
+
+  <p class="q">
+    <strong>0.3秒:</strong> 忍者？ / 相棒・欲しい？ / 初稿より素っ気なくない？<br />
+    OK なら次: さらに微調整 or sprite 化。NG ならどこを（頭・目・胴・色）だけ教えてください。
+  </p>
+</body>
+</html>

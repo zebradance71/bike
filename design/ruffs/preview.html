@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>NINJA — Character Ruffs</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: #e8e4dc;
+      color: #1a1a2e;
+      padding: 2rem;
+    }
+    h1 { font-size: 1.25rem; letter-spacing: 0.2em; font-weight: 600; }
+    p.sub { color: #666; font-size: 0.85rem; margin-top: 0.25rem; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1.5rem;
+      margin-top: 2rem;
+    }
+    .card {
+      background: #f5f0e8;
+      border-radius: 16px;
+      padding: 1.25rem;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+    }
+    .card h2 { font-size: 1rem; margin: 0 0 0.25rem; }
+    .card .tag { font-size: 0.7rem; color: #c45c3e; letter-spacing: 0.05em; }
+    .card .desc { font-size: 0.8rem; color: #555; line-height: 1.5; margin: 0.75rem 0 1rem; }
+    .sizes {
+      display: flex;
+      align-items: flex-end;
+      gap: 1.5rem;
+      padding: 1rem;
+      background: #d8d4cc;
+      border-radius: 12px;
+      min-height: 120px;
+    }
+    .sizes label {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.65rem;
+      color: #888;
+    }
+    .sizes img { image-rendering: pixelated; }
+    .size-48 img { width: 48px; height: 56px; }
+    .size-96 img { width: 96px; height: 112px; }
+    .note {
+      margin-top: 2rem;
+      font-size: 0.8rem;
+      color: #666;
+      max-width: 640px;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+  <h1>NINJA — ラフ案</h1>
+  <p class="sub">48px / 96px で比較（本番ウィンドウは 96×96 付近）</p>
+
+  <div class="grid">
+    <article class="card">
+      <span class="tag">案 A</span>
+      <h2>まるっこシルエット</h2>
+      <p class="desc">丸フード・ハチマキ・光る目。住み着き感と idle 呼吸向き。かわいさ寄り。</p>
+      <div class="sizes">
+        <label class="size-48"><img src="concept-a-round.svg" alt="A 48px" />48px</label>
+        <label class="size-96"><img src="concept-a-round.svg" alt="A 96px" />96px</label>
+      </div>
+    </article>
+
+    <article class="card">
+      <span class="tag">案 B</span>
+      <h2>影の楔</h2>
+      <p class="desc">尖ったフード・赤スカーフ・スリットの目。忍者らしさと軽い walk 向き。クール寄り。</p>
+      <div class="sizes">
+        <label class="size-48"><img src="concept-b-shadow.svg" alt="B 48px" />48px</label>
+        <label class="size-96"><img src="concept-b-shadow.svg" alt="B 96px" />96px</label>
+      </div>
+    </article>
+
+    <article class="card">
+      <span class="tag">案 C</span>
+      <h2>座りベース</h2>
+      <p class="desc">低重心・帯の赤・短刀。止まっている時と sit / smoke 向き。見守りタイプ。</p>
+      <div class="sizes">
+        <label class="size-48"><img src="concept-c-balanced.svg" alt="C 48px" />48px</label>
+        <label class="size-96"><img src="concept-c-balanced.svg" alt="C 96px" />96px</label>
+      </div>
+    </article>
+  </div>
+
+  <p class="note">
+    採用案（A / B / C または組み合わせ）を教えてください。その後スプライト実装に進みます。<br />
+    詳細は <code>README.md</code> を参照。
+  </p>
+</body>
+</html>

@@ -1,0 +1,208 @@
+# Cursor Rules (Lightweight / Safe / High-Performance)
+
+## Core Principles
+- Make the smallest possible change.
+- Respect the existing architecture and implementation.
+- Do not refactor broadly based on assumptions.
+- Prioritize root-cause identification before implementation.
+- Avoid unnecessary file reads and context expansion.
+
+Always prefer:
+
+Root Cause → Minimal Fix → Verify Side Effects
+
+---
+
+## Before Making Changes (Required)
+
+Before editing code, always provide:
+
+[Possible Cause]
+[Files To Modify]
+[Minimal Fix Plan]
+[Potential Side Effects]
+
+Example:
+
+[Possible Cause]
+- Conditional render is missing.
+
+[Files To Modify]
+- App.tsx
+
+[Minimal Fix Plan]
+- Restore missing component render only.
+
+[Potential Side Effects]
+- None expected.
+
+---
+
+## Scope Limitation
+
+Default limits for one task:
+
+- Maximum 3 files changed
+- Roughly within 150 lines of modification
+
+If more is required:
+
+Explain first:
+
+[Why Larger Scope Is Necessary]
+[Alternative Smaller Fix]
+[Impact Range]
+
+Do NOT proceed automatically.
+
+---
+
+## File Reading Rules
+
+Avoid unnecessary project-wide scanning.
+
+Do NOT:
+- Read the entire codebase without reason
+- Perform project-wide refactors
+- Open unrelated files
+- Expand context excessively
+
+Only inspect files directly related to the issue.
+
+---
+
+## Exceptions (Investigation Mode)
+
+Additional investigation is allowed ONLY if:
+
+- Root cause is unclear
+- Errors span multiple files
+- Type errors propagate across modules
+- IPC / API / DB / renderer / backend interaction must be traced
+- Existing behavior or specification must be verified
+
+Before expanding scope, explain:
+
+[Why Additional Investigation Is Needed]
+[Files To Inspect]
+[What Will Be Verified]
+
+---
+
+## Implementation Rules
+
+Required:
+- Explain changes in diff-style summary
+- Explain why code was changed
+- Explain why code was removed (if removed)
+- Preserve existing behavior unless explicitly requested
+
+Avoid:
+- Unnecessary renaming
+- Architectural rewrites
+- State management rewrites
+- Hook refactors without strong reason
+- Massive useEffect additions
+- Design/UI redesigns
+- Broad formatting-only edits
+
+---
+
+## Dependency Rules
+
+Do NOT:
+- Add packages unnecessarily
+- Modify package.json without justification
+
+Before adding dependencies:
+
+Explain:
+[Why Needed]
+[Alternative Without Dependency]
+[Impact]
+
+---
+
+## Database Rules
+
+Do NOT assume schema changes.
+
+Never:
+- Auto-generate migrations blindly
+- Modify schema without explanation
+- Change DB structure based on guesses
+
+Before DB changes, explain:
+
+[Impact Range]
+[Migration Plan]
+[Rollback Method]
+
+---
+
+## UI / Design Rules
+
+Respect the existing UI and visual style.
+
+Do NOT:
+- Redesign UI without request
+- Change spacing/colors/styles arbitrarily
+- Replace design systems automatically
+
+UI changes require:
+
+[Before / After Difference]
+[Reason For Change]
+
+---
+
+## Performance Rules
+
+Always consider:
+
+- CPU usage
+- Re-render frequency
+- DB access frequency
+- Timers / intervals
+- Memory impact
+
+Avoid:
+- Heavy polling
+- Infinite re-renders
+- Expensive watchers
+- Frequent DB queries
+
+Prefer:
+- debounce
+- throttle
+- memoization
+- lazy loading
+
+---
+
+## Debugging Workflow
+
+Follow this order:
+
+1. Identify possible causes
+2. Inspect logs or evidence
+3. Apply the smallest fix
+4. Verify side effects
+5. Prevent recurrence
+
+Never jump directly to large rewrites.
+
+---
+
+## Response Format
+
+Always structure responses as:
+
+[Cause]
+[Files Changed]
+[Changes Made]
+[Side Effects]
+[Implementation]
+
+Keep explanations concise.
+Avoid long unnecessary text.

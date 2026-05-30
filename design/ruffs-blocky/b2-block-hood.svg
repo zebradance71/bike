@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 28" shape-rendering="crispEdges">
+  <title>B2 Block Hood  idle</title>
+  <rect x="8" y="27" width="8" height="1" fill="#0c0c10" opacity="0.3"/>
+  <!-- square head block -->
+  <rect x="6" y="4" width="12" height="11" fill="#14141c"/>
+  <!-- headband -->
+  <rect x="6" y="5" width="12" height="2" fill="#c85848"/>
+  <!-- eye slit -->
+  <rect x="9" y="10" width="6" height="1" fill="#8aa8b8"/>
+  <rect x="10" y="11" width="4" height="1" fill="#14141c"/>
+  <!-- body block -->
+  <rect x="8" y="15" width="8" height="6" fill="#1e1e28"/>
+  <!-- legs -->
+  <rect x="8" y="21" width="3" height="5" fill="#0c0c10"/>
+  <rect x="13" y="21" width="3" height="5" fill="#0c0c10"/>
+</svg>

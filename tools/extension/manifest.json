@@ -1,0 +1,20 @@
+{
+  "manifest_version": 3,
+  "name": "Ninja2 Block Watcher",
+  "version": "0.1.0",
+  "description": "Pings the Ninja2 desktop companion when configured sites are open in the active tab.",
+  "permissions": ["tabs", "storage", "alarms"],
+  "host_permissions": ["http://127.0.0.1/*"],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": false
+  },
+  "action": {
+    "default_title": "Ninja2 Block Watcher",
+    "default_popup": "popup.html"
+  }
+}

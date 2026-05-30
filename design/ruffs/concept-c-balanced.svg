@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 56" width="48" height="56">
+  <title>Concept C  Sit-First</title>
+  <ellipse cx="24" cy="54" rx="15" ry="2" fill="#1a1a2e" opacity="0.12"/>
+  <!-- wide stable base -->
+  <path d="M14 30 L34 30 L32 44 L16 44 Z" fill="#252530"/>
+  <rect x="15" y="42" width="7" height="6" rx="2" fill="#1a1a24"/>
+  <rect x="26" y="42" width="7" height="6" rx="2" fill="#1a1a24"/>
+  <!-- torso -->
+  <rect x="17" y="24" width="14" height="8" rx="3" fill="#2d2d3a"/>
+  <!-- mask / head -->
+  <ellipse cx="24" cy="17" rx="10" ry="11" fill="#232330"/>
+  <path d="M14 18 Q24 28 34 18 L34 24 Q24 32 14 24 Z" fill="#1e1e28"/>
+  <!-- obi knot (red) -->
+  <circle cx="24" cy="30" r="3" fill="#c45c3e"/>
+  <rect x="20" y="29" width="8" height="2" rx="1" fill="#b8543a"/>
+  <!-- eyes above mask -->
+  <circle cx="20" cy="14" r="1.2" fill="#9ed0e0" opacity="0.85"/>
+  <circle cx="28" cy="14" r="1.2" fill="#9ed0e0" opacity="0.85"/>
+  <!-- short tanto -->
+  <rect x="34" y="32" width="6" height="2" rx="1" fill="#404050" transform="rotate(12 34 32)"/>
+</svg>

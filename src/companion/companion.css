@@ -1,0 +1,41 @@
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  overflow: hidden;
+}
+
+.companion-viewport {
+  position: relative;
+  background: transparent;
+}
+
+/* dev: whole companion window receives clicks (prod uses Electron click-through) */
+.companion-viewport--dev {
+  pointer-events: auto;
+  cursor: default;
+  outline: none;
+}
+
+.companion-viewport--dev .ninja-stage,
+.companion-viewport--dev .ninja-image-wrap,
+.companion-viewport--dev .ninja-image {
+  pointer-events: auto;
+}
+
+/* dev only: tiny size label, not a settings UI */
+.companion-size-hint {
+  position: absolute;
+  top: 0;
+  right: 0;
+  font-size: 8px;
+  line-height: 1;
+  padding: 1px 3px;
+  color: rgba(30, 40, 56, 0.35);
+  font-family: system-ui, sans-serif;
+  pointer-events: none;
+  z-index: 2;
+  text-transform: lowercase;
+}

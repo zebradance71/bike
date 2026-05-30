@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 28" shape-rendering="crispEdges">
+  <title>C1 FEZ Buddy</title>
+  <rect x="8" y="27" width="8" height="1" fill="#1a1a22" opacity="0.2"/>
+  <rect x="4" y="4" width="16" height="3" fill="#d06050"/>
+  <rect x="6" y="7" width="12" height="2" fill="#1c1c26"/>
+  <rect x="5" y="9" width="14" height="6" fill="#1c1c26"/>
+  <rect x="6" y="15" width="12" height="2" fill="#12121a"/>
+  <rect x="8" y="11" width="2" height="2" fill="#9ab4c0"/>
+  <rect x="14" y="11" width="2" height="2" fill="#9ab4c0"/>
+  <rect x="8" y="17" width="8" height="4" fill="#242430"/>
+  <rect x="9" y="21" width="2" height="5" fill="#12121a"/>
+  <rect x="13" y="21" width="2" height="5" fill="#12121a"/>
+</svg>

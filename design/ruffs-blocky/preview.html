@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>Blocky Ninja — idle ruffs</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 2rem;
+      font-family: system-ui, sans-serif;
+      background: #b8b4ac;
+      color: #0c0c10;
+    }
+    h1 { font-size: 1rem; letter-spacing: 0.12em; }
+    .sub { font-size: 0.78rem; color: #444; max-width: 520px; line-height: 1.5; margin-bottom: 1.5rem; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1rem;
+    }
+    .card {
+      background: #1a1a22;
+      border-radius: 10px;
+      padding: 1rem;
+      color: #e8e4dc;
+    }
+    .card h2 { margin: 0; font-size: 0.9rem; }
+    .tag { font-size: 0.62rem; color: #c85848; letter-spacing: 0.08em; }
+    .desc { font-size: 0.72rem; color: #999; line-height: 1.45; margin: 0.5rem 0 0.75rem; }
+    .sizes {
+      display: flex;
+      align-items: flex-end;
+      gap: 1.25rem;
+      padding: 0.75rem;
+      background: #2e2e38;
+      border-radius: 8px;
+    }
+    .cell {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.3rem;
+      font-size: 0.6rem;
+      color: #777;
+    }
+    .cell img {
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+      background: repeating-conic-gradient(#3a3a44 0% 25%, #32323c 0% 50%) 50% / 8px 8px;
+    }
+    .s24 img { width: 24px; height: 28px; }
+    .s32 img { width: 32px; height: 37px; }
+    .s48 img { width: 48px; height: 56px; }
+    .focus {
+      margin-top: 2rem;
+      padding: 1rem;
+      background: #f5f0e8;
+      border-radius: 8px;
+      font-size: 0.78rem;
+      line-height: 1.55;
+      max-width: 560px;
+    }
+    .focus strong { color: #c85848; }
+  </style>
+</head>
+<body>
+  <h1>BLOCKY NINJA — idle only</h1>
+  <p class="sub">
+    最優先: <strong>24px で忍者と分かる</strong>。Minecraft / tiny indie / 端に住む相棒。
+    現行＝忍者感弱い / R1＝忍者だが欲しくない、の間を狙う案。
+  </p>
+
+  <div class="grid">
+    <article class="card">
+      <span class="tag">B1</span>
+      <h2>Headband Hero</h2>
+      <p class="desc">赤帯が主役。2点目。いちばん「忍者アイコン」として速い。</p>
+      <div class="sizes">
+        <div class="cell s24"><img src="b1-headband-hero.svg" alt="" /><span>24px ★</span></div>
+        <div class="cell s32"><img src="b1-headband-hero.svg" alt="" />32px</div>
+        <div class="cell s48"><img src="b1-headband-hero.svg" alt="" />48px</div>
+      </div>
+    </article>
+
+    <article class="card">
+      <span class="tag">B2</span>
+      <h2>Block Hood</h2>
+      <p class="desc">四角い頭＋スリット。indie / blocky companion 感が最強。</p>
+      <div class="sizes">
+        <div class="cell s24"><img src="b2-block-hood.svg" alt="" /><span>24px ★</span></div>
+        <div class="cell s32"><img src="b2-block-hood.svg" alt="" />32px</div>
+        <div class="cell s48"><img src="b2-block-hood.svg" alt="" />48px</div>
+      </div>
+    </article>
+
+    <article class="card">
+      <span class="tag">B3</span>
+      <h2>Slit Silhouette</h2>
+      <p class="desc">フード楔形＋目スリット。忍者記号は文化的に強い。肩で人型。</p>
+      <div class="sizes">
+        <div class="cell s24"><img src="b3-slit-silhouette.svg" alt="" /><span>24px ★</span></div>
+        <div class="cell s32"><img src="b3-slit-silhouette.svg" alt="" />32px</div>
+        <div class="cell s48"><img src="b3-slit-silhouette.svg" alt="" />48px</div>
+      </div>
+    </article>
+  </div>
+
+  <p class="focus">
+    <strong>24px ★</strong> を最優先で見比べてください。馴染みより「何のキャラか」。<br />
+    採用後: idle 実装 → walk / sit。README: <code>README.md</code>
+  </p>
+</body>
+</html>

@@ -1,0 +1,232 @@
+/**
+ * System tray integration.
+ *
+ * Goals:
+ *   - One persistent tray icon for the entire app session
+ *   - Left-click toggles the companion's visibility
+ *   - Right-click context menu exposes Block-mode controls, Auto-start
+ *     toggle, settings access, and a real Quit
+ *   - Surfaces the *current* block / auto-start state so the user always
+ *     knows what's going on
+ *
+ * Reliability:
+ *   - All Electron API calls are guarded for a destroyed companion/launcher
+ *   - Icon loading falls back to a 1×1 transparent PNG so the tray *always*
+ *     constructs even if the asset is missing (the app remains usable while
+ *     the user runs `py -3 scripts/build-tray-icon.py`)
+ *   - `rebuildMenu()` is idempotent and safe to call from any IPC handler
+ */
+import {
+  app,
+  BrowserWindow,
+  Menu,
+  MenuItemConstructorOptions,
+  nativeImage,
+  shell,
+  Tray,
+} from "electron";
+import { existsSync } from "fs";
+import path from "path";
+import { readSettings, writeSettings } from "./settings-store";
+
+/**
+ * 1×1 transparent PNG used only as the last-resort fallback when **no**
+ * tray asset can be located, including the dev-time fallback to
+ * `idle.png`. With the icon candidate list below, this should rarely (if
+ * ever) actually be hit in practice.
+ */
+const FALLBACK_ICON_DATAURL =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M/wHwAFBQIAX8jx0gAAAABJRU5ErkJggg==";
+
+export type TrayDeps = {
+  /** Returns current launcher / companion windows (may be null). */
+  getLauncher: () => BrowserWindow | null;
+  getCompanion: () => BrowserWindow | null;
+  /** Show or create the launcher window. */
+  showLauncher: () => void;
+  /** Show or create the companion window. */
+  showCompanion: () => void;
+  /** Hide the companion (don't destroy). */
+  hideCompanion: () => void;
+  /** Force block-mode ON / OFF via the existing broadcastBlockMode. */
+  setBlockMode: (on: boolean, source: string) => void;
+  /** Read the canonical block-mode mirror state. */
+  isBlockMode: () => boolean;
+  /** Set OS auto-start; returns the actually-applied state. */
+  setAutoStart: (on: boolean) => boolean;
+  /** Begin a real quit (sets a "wantsQuit" flag elsewhere then app.quit). */
+  quit: () => void;
+  /** Where to look for the icon, in priority order (first existing wins). */
+  iconCandidates: string[];
+  /** True when running under Vite dev. */
+  isDev: boolean;
+};
+
+let tray: Tray | null = null;
+let deps: TrayDeps | null = null;
+
+function loadTrayIcon(candidates: string[]): Electron.NativeImage {
+  for (const p of candidates) {
+    if (!p) continue;
+    if (existsSync(p)) {
+      try {
+        const img = nativeImage.createFromPath(p);
+        if (!img.isEmpty()) return img;
+      } catch (err) {
+        console.warn("[ninja][tray] icon load failed", p, err);
+      }
+    }
+  }
+  console.warn(
+    "[ninja][tray] no usable icon found; using transparent fallback. " +
+      "Run `py -3 scripts/build-tray-icon.py` to generate assets/tray.{png,ico}."
+  );
+  return nativeImage.createFromDataURL(FALLBACK_ICON_DATAURL);
+}
+
+function companionVisible(): boolean {
+  const w = deps?.getCompanion();
+  return !!(w && !w.isDestroyed() && w.isVisible());
+}
+
+function rebuildMenu(): void {
+  if (!tray || !deps) return;
+  const settings = readSettings();
+  const block = deps.isBlockMode();
+  const visible = companionVisible();
+
+  const template: MenuItemConstructorOptions[] = [
+    {
+      label: `Ninja2 — ${visible ? "running" : "hidden"}`,
+      enabled: false,
+    },
+    { type: "separator" },
+    {
+      label: visible ? "Hide ninja" : "Show ninja",
+      click: () => {
+        if (visible) deps?.hideCompanion();
+        else deps?.showCompanion();
+        rebuildMenu();
+      },
+    },
+    {
+      label: "Open settings…",
+      click: () => deps?.showLauncher(),
+    },
+    { type: "separator" },
+    {
+      label: `Block mode${block ? "  ●" : ""}`,
+      submenu: [
+        {
+          label: `Currently: ${block ? "ON" : "OFF"}`,
+          enabled: false,
+        },
+        { type: "separator" },
+        {
+          label: "Force ON",
+          enabled: !block,
+          click: () => {
+            deps?.setBlockMode(true, "tray");
+            rebuildMenu();
+          },
+        },
+        {
+          label: "Force OFF",
+          enabled: block,
+          click: () => {
+            deps?.setBlockMode(false, "tray");
+            rebuildMenu();
+          },
+        },
+      ],
+    },
+    { type: "separator" },
+    {
+      label: "Start with Windows",
+      type: "checkbox",
+      checked: settings.autoStart,
+      click: (item) => {
+        const applied = deps?.setAutoStart(!!item.checked) ?? false;
+        writeSettings({ autoStart: applied });
+        // Re-sync the menu in case the OS rejected the change.
+        rebuildMenu();
+      },
+    },
+    { type: "separator" },
+    {
+      label: "Open user data folder",
+      click: () => {
+        try {
+          void shell.openPath(app.getPath("userData"));
+        } catch (err) {
+          console.warn("[ninja][tray] open userData failed", err);
+        }
+      },
+    },
+    {
+      label: "Reload assets",
+      visible: !!deps.isDev,
+      click: () => {
+        const c = deps?.getCompanion();
+        if (c && !c.isDestroyed()) c.webContents.reload();
+        const l = deps?.getLauncher();
+        if (l && !l.isDestroyed()) l.webContents.reload();
+      },
+    },
+    { type: "separator" },
+    {
+      label: "Quit Ninja2",
+      click: () => deps?.quit(),
+    },
+  ];
+
+  tray.setContextMenu(Menu.buildFromTemplate(template));
+}
+
+export function createAppTray(d: TrayDeps): Tray | null {
+  if (tray) return tray;
+  deps = d;
+
+  try {
+    const icon = loadTrayIcon(d.iconCandidates);
+    tray = new Tray(icon);
+    tray.setToolTip("Ninja2");
+    tray.on("click", () => {
+      // Left-click toggle. Some Linux distros don't fire `click` reliably;
+      // the right-click menu is the canonical fallback.
+      if (companionVisible()) deps?.hideCompanion();
+      else deps?.showCompanion();
+      rebuildMenu();
+    });
+    tray.on("double-click", () => {
+      deps?.showLauncher();
+    });
+    rebuildMenu();
+    return tray;
+  } catch (err) {
+    console.warn(
+      "[ninja][tray] failed to create tray; running without it",
+      err
+    );
+    tray = null;
+    return null;
+  }
+}
+
+/** External callers (e.g. main.ts after a block-mode broadcast) can refresh
+ * the menu so the "Currently: ON/OFF" label stays accurate. */
+export function refreshTrayMenu(): void {
+  rebuildMenu();
+}
+
+export function destroyAppTray(): void {
+  if (tray) {
+    try {
+      tray.destroy();
+    } catch {
+      // ignore — happens during fast shutdown
+    }
+    tray = null;
+  }
+  deps = null;
+}

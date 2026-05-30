@@ -1,0 +1,18 @@
+.companion-frame-flip {
+  width: 100%;
+  height: 100%;
+}
+
+.companion-frame-flip[data-facing="left"] {
+  transform: scaleX(-1);
+}
+
+.companion-presence-frames .companion-body-image,
+.companion-sit-frames .companion-body-image {
+  transform-origin: center bottom;
+}
+
+/* Peek: bottom-anchored head crop */
+.companion-presence-frames--peek .companion-image {
+  object-position: center bottom;
+}

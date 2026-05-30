@@ -1,0 +1,63 @@
+.ninja-stage {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.ninja-sprite-root {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: var(--sprite-render);
+  height: var(--sprite-render);
+  transform: translateX(-50%);
+  overflow: visible;
+}
+
+.ninja-fx-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.ninja-fx-layer--front {
+  z-index: 2;
+}
+
+.ninja-fx-layer__img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center bottom;
+}
+
+.ninja-sprite-root .companion-sprite-wrap {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: var(--sprite-render);
+  height: var(--sprite-render);
+  transform: translateX(-50%);
+}
+
+.ninja-sprite-root .companion-body-slot {
+  position: relative;
+  z-index: 1;
+  margin: 0 auto;
+}
+
+.ninja-stage-fx-front {
+  position: absolute;
+  inset: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.ninja-stage-fx-front .ninja-fx-layer {
+  inset: 0;
+}

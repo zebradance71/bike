@@ -1,0 +1,68 @@
+.ninja-action-debug {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  max-height: 42vh;
+  overflow: auto;
+  background: rgba(255, 255, 255, 0.92);
+  border-top: 1px solid rgba(0, 0, 0, 0.12);
+  font-size: 10px;
+  font-family: system-ui, sans-serif;
+  z-index: 100;
+  pointer-events: auto;
+}
+
+.ninja-action-debug__title {
+  padding: 4px 8px;
+  font-weight: 600;
+  color: #1e2838;
+}
+
+.ninja-action-debug__table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.ninja-action-debug__table th,
+.ninja-action-debug__table td {
+  padding: 4px 6px;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  vertical-align: top;
+}
+
+.ninja-action-debug__table th {
+  text-align: left;
+  color: #4a5568;
+  font-weight: 500;
+}
+
+.ninja-debug-path {
+  color: #4a5568;
+  word-break: break-all;
+}
+
+.ninja-debug-preview {
+  width: var(--sprite-render);
+  height: var(--sprite-render);
+  position: relative;
+  background: repeating-conic-gradient(
+      #e8ecf0 0% 25%,
+      #f4f6f8 0% 50%
+    )
+    50% / 12px 12px;
+}
+
+.ninja-debug-preview-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.ninja-debug-measure-img {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+}

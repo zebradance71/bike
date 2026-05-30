@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 28" shape-rendering="crispEdges">
+  <title>R3 Desktop Icon  idle</title>
+  <rect width="24" height="28" fill="none"/>
+  <rect x="9" y="27" width="6" height="1" fill="#12121a" opacity="0.2"/>
+  <!-- single hood mass -->
+  <rect x="7" y="5" width="10" height="2" fill="#b84e38"/>
+  <rect x="6" y="7" width="12" height="7" fill="#252530"/>
+  <rect x="7" y="14" width="10" height="1" fill="#12121a"/>
+  <rect x="9" y="9" width="1" height="1" fill="#6a8a96"/>
+  <rect x="14" y="9" width="1" height="1" fill="#6a8a96"/>
+  <!-- minimal body -->
+  <rect x="8" y="15" width="8" height="5" fill="#252530"/>
+  <rect x="9" y="20" width="2" height="5" fill="#12121a"/>
+  <rect x="13" y="20" width="2" height="5" fill="#12121a"/>
+</svg>
