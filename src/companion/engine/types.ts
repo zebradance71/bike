@@ -1,10 +1,9 @@
-import type { ActionKey } from "../characters/active";
-
-export type { ActionKey as NinjaActionKey } from "../characters/active";
+export type { ActionKey } from "../characters/active";
 
 export type CompanionId = string;
 
-export type CompanionAction = ActionKey;
+/** Runtime action id — narrowed per pack in actions.ts, string at engine layer. */
+export type CompanionAction = string;
 
 export interface CompanionState {
   id: CompanionId;

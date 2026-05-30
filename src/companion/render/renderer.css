@@ -1,0 +1,63 @@
+.companion-stage {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.companion-sprite-root {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: var(--sprite-render);
+  height: var(--sprite-render);
+  transform: translateX(-50%);
+  overflow: visible;
+}
+
+.companion-fx-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.companion-fx-layer--front {
+  z-index: 2;
+}
+
+.companion-fx-layer__img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center bottom;
+}
+
+.companion-sprite-root .companion-sprite-wrap {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: var(--sprite-render);
+  height: var(--sprite-render);
+  transform: translateX(-50%);
+}
+
+.companion-sprite-root .companion-body-slot {
+  position: relative;
+  z-index: 1;
+  margin: 0 auto;
+}
+
+.companion-stage-fx-front {
+  position: absolute;
+  inset: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.companion-stage-fx-front .companion-fx-layer {
+  inset: 0;
+}

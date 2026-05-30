@@ -59,6 +59,20 @@ function resolveFrameUrl(stem: string, renderWidthPx: number): string | null {
   return DEFAULT_CATALOG.get(stem) ?? null;
 }
 
+export function frameTierResolveDebug(
+  stem: string,
+  renderWidthPx: number
+): { stem: string; resolvedPath: string | null; exists: boolean; fallbackUsed: boolean } {
+  const url = resolveFrameUrl(stem, renderWidthPx);
+  const idleFallback = resolveFrameUrl("idle", renderWidthPx);
+  return {
+    stem,
+    resolvedPath: url,
+    exists: url !== null,
+    fallbackUsed: url !== null && url === idleFallback && stem !== "idle",
+  };
+}
+
 export function frameTierSrc(stem: string, renderWidthPx: number): string | null {
   const url = resolveFrameUrl(stem, renderWidthPx);
   if (url) return url;

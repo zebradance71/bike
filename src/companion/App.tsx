@@ -3,14 +3,12 @@ import { companionViewportSize, spriteRenderPx } from "./displaySize";
 import { touchCompanionActivity } from "./engine/companionActivity";
 import { useCompanionApp } from "./useDevAnimPreview";
 import {
-  KUNAI_FLY_EXTRA_PX_MULT,
-  resolveStemUrl,
-} from "./characters/ninja/actions";
-import { ActionDebugPanel } from "./characters/ninja/debug/ActionDebugPanel";
-import { FRAME_ASSET_REV } from "./characters/ninja/frames/frameAssetUrl";
-import { frameTierResolveDebug } from "./characters/ninja/frames/tierCatalog";
-import { NinjaSpriteRenderer } from "./characters/ninja/render/SpriteRenderer";
-import { activeCharacter } from "./characters/active";
+  activeCharacter,
+  FRAME_ASSET_REV,
+  frameTierResolveDebug,
+  resolvePackStemUrl,
+} from "./characters/active";
+import { CompanionSpriteRenderer } from "./render/CompanionSpriteRenderer";
 import "./companion.css";
 
 export function App() {
@@ -27,14 +25,14 @@ export function App() {
   const viewportRef = useRef<HTMLDivElement>(null);
   const baseViewport = companionViewportSize(spriteSize);
   const renderW = spriteRenderPx(spriteSize);
-  const kunaiExtraPx =
-    state.action === "kunai"
-      ? Math.round(renderW * KUNAI_FLY_EXTRA_PX_MULT)
-      : 0;
+  const widthExtra =
+    activeCharacter.viewportWidthExtra?.(state.action, renderW) ?? 0;
   const viewport = {
-    width: baseViewport.width + kunaiExtraPx,
+    width: baseViewport.width + widthExtra,
     height: baseViewport.height,
   };
+
+  const DebugPanel = activeCharacter.devDebugPanel;
 
   useEffect(() => {
     if (!import.meta.env.DEV) return;
@@ -59,8 +57,8 @@ export function App() {
       }
     }
 
-    const idleResolved = resolveStemUrl(
-      { stem: activeCharacter.trayIconStem ?? "idle" },
+    const idleResolved = resolvePackStemUrl(
+      activeCharacter.trayIconStem ?? "idle",
       renderW
     );
     if (idleResolved) {
@@ -106,14 +104,12 @@ export function App() {
       {import.meta.env.DEV && (
         <span className="companion-size-hint" aria-hidden>
           {state.action}
-          {blockMode ? " · BLOCK" : ""} · W walk · P pose · S smoke · Shift+S ·
-          M mission · R run · L look · K kunai · B block · Alt+D debug · rev
-          {" "}
-          {FRAME_ASSET_REV} · {spriteSize}px / {renderW}px slot
+          {blockMode ? " · BLOCK" : ""} · {activeCharacter.displayName} · Alt+D
+          debug · rev {FRAME_ASSET_REV} · {spriteSize}px / {renderW}px slot
         </span>
       )}
 
-      <NinjaSpriteRenderer
+      <CompanionSpriteRenderer
         state={state}
         spriteSize={spriteSize}
         idleResetSeq={idleResetSeq}
@@ -121,8 +117,8 @@ export function App() {
         onTransientEnd={onTransientEnd}
       />
 
-      {import.meta.env.DEV && showActionDebug && (
-        <ActionDebugPanel spriteSize={spriteSize} />
+      {import.meta.env.DEV && showActionDebug && DebugPanel && (
+        <DebugPanel spriteSize={spriteSize} />
       )}
     </div>
   );

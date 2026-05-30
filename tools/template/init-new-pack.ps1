@@ -44,6 +44,12 @@ $replacements = @{
     "{{YEAR}}"         = (Get-Date).Year.ToString()
 }
 
+function Write-Utf8NoBom {
+    param([string]$Path, [string]$Content)
+    $utf8 = New-Object System.Text.UTF8Encoding $false
+    [System.IO.File]::WriteAllText($Path, $Content, $utf8)
+}
+
 function Expand-TemplateFile {
     param([string]$Src, [string]$Dst)
     $text = Get-Content $Src -Raw -Encoding UTF8
@@ -68,6 +74,9 @@ $activeContent = @"
 import { $exportName } from "./$CharacterId/pack";
 
 export type { ActionKey } from "./$CharacterId/actions";
+export { FRAME_ASSET_REV } from "./$CharacterId/frames/frameAssetUrl";
+export { frameTierResolveDebug } from "./$CharacterId/frames/tierCatalog";
+export { resolveStemUrl as resolvePackStemUrl } from "./$CharacterId/actions";
 
 /**
  * The single character pack baked into this build.
@@ -75,19 +84,19 @@ export type { ActionKey } from "./$CharacterId/actions";
  */
 export const activeCharacter = $exportName;
 "@
-Set-Content -Path $ActiveTs -Value $activeContent -Encoding UTF8
+Write-Utf8NoBom -Path $ActiveTs -Content $activeContent
 
 # branding.json
 Expand-TemplateFile $BrandingTemplate $BrandingJson
 $branding = Get-Content $BrandingJson -Raw -Encoding UTF8 | ConvertFrom-Json
 $branding.blockBridgePort = $BlockBridgePort
-$branding | ConvertTo-Json -Depth 4 | Set-Content $BrandingJson -Encoding UTF8
+Write-Utf8NoBom -Path $BrandingJson -Content (($branding | ConvertTo-Json -Depth 4) + "`n")
 
 # package.json name
 $pkg = Get-Content $PackageJson -Raw -Encoding UTF8 | ConvertFrom-Json
 $pkg.name = $CharacterId
 $pkg.description = $Description
-$pkg | ConvertTo-Json -Depth 6 | Set-Content $PackageJson -Encoding UTF8
+Write-Utf8NoBom -Path $PackageJson -Content (($pkg | ConvertTo-Json -Depth 6) + "`n")
 
 # placeholder idle.png
 Write-Host "[init-new-pack] generating placeholder idle.png"

@@ -1,5 +1,6 @@
 import type { CharacterPack, UseLayersHook } from "../types";
-import { actionAssets, REQUIRED_STEMS } from "./actions";
+import { actionAssets, REQUIRED_STEMS, KUNAI_FLY_EXTRA_PX_MULT } from "./actions";
+import { ActionDebugPanel } from "./debug/ActionDebugPanel";
 import { useNinjaLayers } from "./useLayers";
 
 /**
@@ -27,4 +28,7 @@ export const ninjaPack: CharacterPack = {
   actions: actionAssets,
   useLayers,
   trayIconStem: "idle",
+  devDebugPanel: ActionDebugPanel,
+  viewportWidthExtra: (action, renderWidthPx) =>
+    action === "kunai" ? Math.round(renderWidthPx * KUNAI_FLY_EXTRA_PX_MULT) : 0,
 };

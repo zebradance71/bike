@@ -130,6 +130,18 @@ export type CharacterPack = {
    * when undefined; can be overridden when a pack wants a custom face.
    */
   readonly trayIconStem?: string;
+
+  /** Optional dev-only debug overlay (e.g. action timeline panel). */
+  readonly devDebugPanel?: ComponentType<{ spriteSize: DisplaySize }>;
+
+  /**
+   * Extra viewport width for wide FX (e.g. kunai flight). Return 0 when
+   * the action does not need horizontal expansion.
+   */
+  readonly viewportWidthExtra?: (
+    action: string,
+    renderWidthPx: number
+  ) => number;
 };
 
 /** Pack-defined action keys for the active build (narrowed at runtime). */

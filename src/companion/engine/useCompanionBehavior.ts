@@ -5,8 +5,8 @@ import {
   markIdleSince,
   touchCompanionActivity,
 } from "./companionActivity";
-import { MISSION_HOLD_MS } from "../characters/active";
 import type { CharacterPack } from "../characters/types";
+import { MISSION_HOLD_MS } from "./timing";
 import type { DisplaySize } from "../displaySize";
 import {
   BLOCK_GIVE_UP_MS,

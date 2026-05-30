@@ -1,4 +1,5 @@
-import { MISSION_HOLD_MS } from "../characters/active";
+/** Mission teleport hold (smoke-only + smoke-big + arrive). Pack-agnostic default. */
+export const MISSION_HOLD_MS = 420;
 
 export type TimingRange = { min: number; max: number };
 
