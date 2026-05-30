@@ -17,6 +17,10 @@ jobs:
           node-version: "20"
           cache: npm
 
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
       - name: Install dependencies
         run: npm ci
 
@@ -27,4 +31,4 @@ jobs:
         run: npm run build
 
       - name: Verify pack-tools import (smoke)
-        run: py -3 -c "import sys; sys.path.insert(0,'scripts/pack-tools'); import frame_import_common, resolve_paths; print('pack-tools ok')"
+        run: py -3 -m pip install Pillow && py -3 -c "import sys; sys.path.insert(0,'scripts/pack-tools'); import frame_import_common, resolve_paths; print('pack-tools ok')"

@@ -21,10 +21,10 @@ jobs:
 
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: "3.11"
 
       - name: Install Python deps
-        run: py -3 -m pip install Pillow
+        run: py -3 -m pip install Pillow setuptools
 
       - name: Install npm deps
         run: npm ci
@@ -34,8 +34,6 @@ jobs:
 
       - name: Build + package
         run: npm run dist
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload GitHub Release assets
         uses: softprops/action-gh-release@v2
