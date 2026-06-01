@@ -1,7 +1,7 @@
 {
   "name": "ninja",
   "type": "module",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "private": true,
   "description": "Silent Ninja Companion — a small desktop friend",
   "author": "ToriiLabs",

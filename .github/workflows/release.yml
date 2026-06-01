@@ -85,6 +85,7 @@ jobs:
             dist-app/*-setup-x64.exe
             dist-app/*-portable-x64.exe
             dist-app/*-win64.zip
+            dist-app/itch/*-itch.zip
           generate_release_notes: true
 
       - name: Upload dist-app artifact
@@ -95,6 +96,13 @@ jobs:
             dist-app/*-setup-x64.exe
             dist-app/*-portable-x64.exe
             dist-app/*-win64.zip
+          if-no-files-found: error
+
+      - name: Upload itch zip artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-app-itch
+          path: dist-app/itch/*-itch.zip
           if-no-files-found: error
 
   push-itch:
@@ -125,12 +133,12 @@ jobs:
           "name=$tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
           Write-Host "Release tag: $tag"
 
-      - name: Download dist-app (build artifact)
+      - name: Download itch zip (build artifact)
         if: needs.build.result == 'success'
         uses: actions/download-artifact@v4
         with:
-          name: dist-app
-          path: dist-app
+          name: dist-app-itch
+          path: dist-app/itch
 
       - name: Download dist-app (GitHub Release)
         if: github.event_name == 'workflow_dispatch' && inputs.mode == 'itch-only'
@@ -143,14 +151,21 @@ jobs:
           $branding = Get-Content branding.json -Raw | ConvertFrom-Json
           $version = $tag -replace '^v', ''
 
-          $zipName = "$($branding.productName)-$version-win64.zip"
-          New-Item -ItemType Directory -Force -Path dist-app | Out-Null
-          $out = Join-Path dist-app $zipName
+          $zipName = "$($branding.productName)-$version-win64-itch.zip"
+          New-Item -ItemType Directory -Force -Path dist-app/itch | Out-Null
+          $out = Join-Path dist-app/itch $zipName
           $uri = "https://github.com/${{ github.repository }}/releases/download/$tag/$zipName"
+          $fallback = "$($branding.productName)-$version-win64.zip"
 
-          Write-Host "[itch-only] GET $uri"
+          Write-Host "[itch-only] GET $zipName (fallback: $fallback)"
           $headers = @{ Authorization = "Bearer $env:GH_TOKEN"; Accept = "application/octet-stream" }
-          Invoke-WebRequest -Uri $uri -Headers $headers -OutFile $out
+          try {
+            Invoke-WebRequest -Uri $uri -Headers $headers -OutFile $out
+          } catch {
+            Write-Host "[itch-only] itch wrapper zip missing, using github zip (flat on itch)"
+            Invoke-WebRequest -Uri "https://github.com/${{ github.repository }}/releases/download/$tag/$fallback" -Headers $headers -OutFile (Join-Path dist-app $fallback)
+            $out = Join-Path dist-app $fallback
+          }
           if (-not (Test-Path $out)) { throw "Download failed: $out" }
           Write-Host "[itch-only] saved $out ($((Get-Item $out).Length) bytes)"
 
@@ -172,7 +187,10 @@ jobs:
 
           $tag = "${{ steps.rel.outputs.name }}".Trim()
           $version = $tag -replace '^v', ''
-          $zip = "dist-app/$($branding.productName)-$version-win64.zip"
+          $zip = "dist-app/itch/$($branding.productName)-$version-win64-itch.zip"
+          if (-not (Test-Path $zip)) {
+            $zip = "dist-app/$($branding.productName)-$version-win64.zip"
+          }
 
           if (-not (Test-Path $zip)) {
             Write-Host "dist-app contents:"
