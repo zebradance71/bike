@@ -1,15 +1,21 @@
-# Package win-unpacked into user-friendly ZIPs:
+# Package win-unpacked into a user-friendly ZIP:
 #
-#   Ninja2-{version}-win64.zip       — GitHub Release (Ninja2/ at zip root)
-#   Ninja2-{version}-win64-itch.zip  — itch.io butler (README.txt + Ninja2/)
+#   Ninja2-{version}-win64.zip
+#     README.txt          — 展開後の案内（itch 用に zip ルートにも置く）
+#     Ninja2/
+#       README.txt
+#       Start Ninja2.bat  — ダブルクリック用（exe は dll 群の中にある）
+#       Ninja2.exe
+#       licenses/         — ライセンス文書のみ分離（実行ファイルは exe 横に必須）
+#       locales/
+#       resources/
+#       *.dll / *.pak     — Chromium 必須（移動不可）
 #
-# itch.io strips a zip when it has a single root folder. The itch zip adds
-# README.txt beside Ninja2/ so the folder name survives on download.
+# itch.io: zip のみ butler push（setup.exe は GitHub Release のみ）
+# itch はルートにフォルダが1つだけの zip を中身ごとフラット化するため、
+# README.txt をルートに置いて Ninja2/ フォルダ名を維持する。
 #
-# Note: inside Ninja2/, Electron requires .dll / .pak next to the exe — that
-# layout cannot be cleaned up without breaking the app.
-#
-# Usage (after npm run dist:dir or full dist):
+# Usage (after npm run dist):
 #   pwsh -File scripts/package-win-folder.ps1
 
 $ErrorActionPreference = "Stop"
@@ -32,54 +38,51 @@ function Write-AppReadme {
 Ninja2 — 使い方
 ================
 
-  1. このフォルダの「$Exe」をダブルクリック
+  1. 「Start Ninja2.bat」または「$Exe」をダブルクリック
   2. タスクバー右下（^）のトレイに忍者アイコンが出ます
 
-※ 同じフォルダにある .dll / .pak などは削除しないでください（起動に必要です）。
-  Electron アプリは exe の横にこれらが必要で、サブフォルダへ移せません。
+※ 同じフォルダの .dll / .pak / resources / locales は削除しないでください。
+  Electron（Chromium）の仕様で exe の横に必要です。
 
-初めての方は ZIP より「インストーラ (*-setup-x64.exe)」がおすすめです。
+インストーラ版は GitHub Release の *-setup-x64.exe を参照してください。
 "@
     Set-Content -Path (Join-Path $Dir "README.txt") -Value $readme -Encoding utf8
 }
 
-function Write-ItchZipReadme {
+function Write-ZipRootReadme {
     param([string]$Path, [string]$Folder, [string]$Exe)
     $readme = @"
 Ninja2 — ZIP の使い方
 =====================
 
-  1. 「$Folder」フォルダを開く
-  2. 「$Exe」をダブルクリック
-  3. タスクバー右下（^）のトレイに忍者アイコンが出ます
+  1. この ZIP を右クリック → 「すべて展開」
+  2. 「$Folder」フォルダを開く
+  3. 「Start Ninja2.bat」または「$Exe」をダブルクリック
 
-※ $Folder 内の .dll / .pak / resources などは削除しないでください。
-  （Chromium / Electron の仕様上、exe の横に並ぶ必要があります）
-
-ZIP が散らかって見える場合 → itch の「インストーラ (*-setup-x64.exe)」を使うと
-Program Files に入り、普段フォルダを見ません。
+※ $Folder 内の .dll / .pak などは削除しないでください（起動に必要です）。
 "@
     Set-Content -Path $Path -Value $readme -Encoding utf8
 }
 
-function New-ZipFromFolder {
-    param(
-        [string]$SourceDir,
-        [string]$EntryName,
-        [string]$ZipPath
-    )
-    $parent = Split-Path $SourceDir -Parent
-    if (Test-Path $ZipPath) {
-        Remove-Item $ZipPath -Force
-    }
-    Push-Location $parent
-    try {
-        & tar -a -cf $ZipPath $EntryName
-        if ($LASTEXITCODE -ne 0) {
-            throw "tar failed creating $ZipPath"
+function Write-StartBat {
+    param([string]$Dir, [string]$Exe)
+    $bat = @"
+@echo off
+cd /d "%~dp0"
+start "" "$Exe"
+"@
+    Set-Content -Path (Join-Path $Dir "Start Ninja2.bat") -Value $bat -Encoding ascii
+}
+
+function Organize-AppDir {
+    param([string]$AppDir)
+    $licDir = Join-Path $AppDir "licenses"
+    New-Item -ItemType Directory -Path $licDir -Force | Out-Null
+    foreach ($name in @("LICENSE.electron", "LICENSES.chromium.html")) {
+        $src = Join-Path $AppDir $name
+        if (Test-Path $src) {
+            Move-Item -Path $src -Destination $licDir -Force
         }
-    } finally {
-        Pop-Location
     }
 }
 
@@ -103,28 +106,6 @@ function New-ZipFromEntries {
     }
 }
 
-function Test-ZipSingleRoot {
-    param(
-        [string]$ZipPath,
-        [string]$ExpectedRoot
-    )
-    Add-Type -AssemblyName System.IO.Compression.FileSystem
-    $archive = [System.IO.Compression.ZipFile]::OpenRead($ZipPath)
-    try {
-        $roots = @(
-            $archive.Entries |
-            ForEach-Object { ($_.FullName -replace '\\', '/') -split '/' | Select-Object -First 1 } |
-            Where-Object { $_ } |
-            Select-Object -Unique
-        )
-        if (@($roots).Count -ne 1 -or $roots[0] -ne $ExpectedRoot) {
-            throw "ZIP $ZipPath expected single root '$ExpectedRoot', got: $($roots -join ', ')"
-        }
-    } finally {
-        $archive.Dispose()
-    }
-}
-
 function Test-ZipContainsFolder {
     param(
         [string]$ZipPath,
@@ -143,52 +124,31 @@ function Test-ZipContainsFolder {
             throw "ZIP $ZipPath must contain folder '$FolderName', roots: $($roots -join ', ')"
         }
         if (@($roots).Count -lt 2) {
-            throw "ZIP $ZipPath needs multiple zip roots for itch (got: $($roots -join ', '))"
+            throw "ZIP $ZipPath needs README + folder at zip root (got: $($roots -join ', '))"
         }
     } finally {
         $archive.Dispose()
     }
 }
 
-# --- GitHub zip: Ninja2/ at archive root -----------------------------------
-
-$ghStaging = Join-Path $repo "dist-app\_pack-staging-$version"
-$appDir = Join-Path $ghStaging $product
-if (Test-Path $ghStaging) {
-    Remove-Item $ghStaging -Recurse -Force
+$staging = Join-Path $repo "dist-app\_pack-staging-$version"
+$appDir = Join-Path $staging $product
+if (Test-Path $staging) {
+    Remove-Item $staging -Recurse -Force
 }
 New-Item -ItemType Directory -Path $appDir -Force | Out-Null
 
 Write-Host "[package-win-folder] copying win-unpacked -> $appDir"
 Copy-Item -Path (Join-Path $unpacked "*") -Destination $appDir -Recurse -Force
+Organize-AppDir -AppDir $appDir
 Write-AppReadme -Dir $appDir -Exe $exeName
+Write-StartBat -Dir $appDir -Exe $exeName
+Write-ZipRootReadme -Path (Join-Path $staging "README.txt") -Folder $product -Exe $exeName
 
 $zipOut = Join-Path $repo "dist-app\$product-$version-win64.zip"
 Write-Host "[package-win-folder] creating $zipOut"
-New-ZipFromFolder -SourceDir $appDir -EntryName $product -ZipPath $zipOut
-Test-ZipSingleRoot -ZipPath $zipOut -ExpectedRoot $product
-Remove-Item $ghStaging -Recurse -Force
+New-ZipFromEntries -WorkingDir $staging -Entries @("README.txt", $product) -ZipPath $zipOut
+Test-ZipContainsFolder -ZipPath $zipOut -FolderName $product
+Remove-Item $staging -Recurse -Force
 
-# --- itch zip: README.txt + Ninja2/ (two roots — itch must not strip) ----
-
-$itchStaging = Join-Path $repo "dist-app\_itch-staging-$version"
-$itchAppDir = Join-Path $itchStaging $product
-if (Test-Path $itchStaging) {
-    Remove-Item $itchStaging -Recurse -Force
-}
-New-Item -ItemType Directory -Path $itchAppDir -Force | Out-Null
-
-Write-Host "[package-win-folder] copying win-unpacked -> $itchAppDir (itch zip)"
-Copy-Item -Path (Join-Path $unpacked "*") -Destination $itchAppDir -Recurse -Force
-Write-AppReadme -Dir $itchAppDir -Exe $exeName
-Write-ItchZipReadme -Path (Join-Path $itchStaging "README.txt") -Folder $product -Exe $exeName
-
-$itchZip = Join-Path $repo "dist-app\itch\$product-$version-win64-itch.zip"
-$itchZipDir = Split-Path $itchZip -Parent
-New-Item -ItemType Directory -Path $itchZipDir -Force | Out-Null
-Write-Host "[package-win-folder] creating $itchZip"
-New-ZipFromEntries -WorkingDir $itchStaging -Entries @("README.txt", $product) -ZipPath $itchZip
-Test-ZipContainsFolder -ZipPath $itchZip -FolderName $product
-Remove-Item $itchStaging -Recurse -Force
-
-Write-Host "[package-win-folder] done (github + itch zips)"
+Write-Host "[package-win-folder] done"

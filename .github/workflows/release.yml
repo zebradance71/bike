@@ -85,7 +85,6 @@ jobs:
             dist-app/*-setup-x64.exe
             dist-app/*-portable-x64.exe
             dist-app/*-win64.zip
-            dist-app/itch/*-itch.zip
           generate_release_notes: true
 
       - name: Upload dist-app artifact
@@ -96,13 +95,6 @@ jobs:
             dist-app/*-setup-x64.exe
             dist-app/*-portable-x64.exe
             dist-app/*-win64.zip
-          if-no-files-found: error
-
-      - name: Upload itch zip artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: dist-app-itch
-          path: dist-app/itch/*-itch.zip
           if-no-files-found: error
 
   push-itch:
@@ -133,46 +125,29 @@ jobs:
           "name=$tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
           Write-Host "Release tag: $tag"
 
-      - name: Download release artifacts (build)
+      - name: Download dist-app (build artifact)
         if: needs.build.result == 'success'
         uses: actions/download-artifact@v4
         with:
           name: dist-app
           path: dist-app
 
-      - name: Download itch zip (build artifact)
-        if: needs.build.result == 'success'
-        uses: actions/download-artifact@v4
-        with:
-          name: dist-app-itch
-          path: dist-app/itch
-
-      - name: Download dist-app (GitHub Release)
+      - name: Download zip (GitHub Release, itch-only)
         if: github.event_name == 'workflow_dispatch' && inputs.mode == 'itch-only'
         shell: pwsh
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           $tag = "${{ steps.rel.outputs.name }}".Trim()
-
           $branding = Get-Content branding.json -Raw | ConvertFrom-Json
           $version = $tag -replace '^v', ''
-
-          $zipName = "$($branding.productName)-$version-win64-itch.zip"
-          New-Item -ItemType Directory -Force -Path dist-app/itch | Out-Null
-          $out = Join-Path dist-app/itch $zipName
+          $zipName = "$($branding.productName)-$version-win64.zip"
+          New-Item -ItemType Directory -Force -Path dist-app | Out-Null
+          $out = Join-Path dist-app $zipName
           $uri = "https://github.com/${{ github.repository }}/releases/download/$tag/$zipName"
-          $fallback = "$($branding.productName)-$version-win64.zip"
-
-          Write-Host "[itch-only] GET $zipName (fallback: $fallback)"
+          Write-Host "[itch-only] GET $uri"
           $headers = @{ Authorization = "Bearer $env:GH_TOKEN"; Accept = "application/octet-stream" }
-          try {
-            Invoke-WebRequest -Uri $uri -Headers $headers -OutFile $out
-          } catch {
-            Write-Host "[itch-only] itch wrapper zip missing, using github zip (flat on itch)"
-            Invoke-WebRequest -Uri "https://github.com/${{ github.repository }}/releases/download/$tag/$fallback" -Headers $headers -OutFile (Join-Path dist-app $fallback)
-            $out = Join-Path dist-app $fallback
-          }
+          Invoke-WebRequest -Uri $uri -Headers $headers -OutFile $out
           if (-not (Test-Path $out)) { throw "Download failed: $out" }
           Write-Host "[itch-only] saved $out ($((Get-Item $out).Length) bytes)"
 
@@ -194,11 +169,7 @@ jobs:
 
           $tag = "${{ steps.rel.outputs.name }}".Trim()
           $version = $tag -replace '^v', ''
-          $setup = "dist-app/$($branding.productName)-$version-setup-x64.exe"
-          $zip = "dist-app/itch/$($branding.productName)-$version-win64-itch.zip"
-          if (-not (Test-Path $zip)) {
-            $zip = "dist-app/$($branding.productName)-$version-win64.zip"
-          }
+          $zip = "dist-app/$($branding.productName)-$version-win64.zip"
 
           if (-not (Test-Path $zip)) {
             Write-Host "dist-app contents:"
@@ -225,12 +196,5 @@ jobs:
             $target = "$user/${game}:$channel"
           }
 
-          Write-Host "[butler] push setup -> $target"
-          if (Test-Path $setup) {
-            butler push $setup $target
-          } else {
-            Write-Host "::warning::setup exe not found: $setup"
-          }
-
-          Write-Host "[butler] push zip -> $target"
+          Write-Host "[butler] push zip only -> $target"
           butler push $zip $target
