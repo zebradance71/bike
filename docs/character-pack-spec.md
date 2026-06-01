@@ -150,13 +150,13 @@ git push origin v0.1.5
 
 **手動実行（Actions → Release → Run workflow）**
 
-| mode | 用途 | release_tag |
-|------|------|-------------|
-| `full` | ビルド + GitHub Release + itch | 付けるタグ名（例 `v0.1.5`） |
-| `itch-only` | itch 再 push のみ（ビルドなし） | 既存 Release（例 `v0.1.4`） |
+| mode | 用途 | release_tag 入力値 |
+|------|------|-------------------|
+| `full` | ビルド + GitHub Release + itch | **`v0.1.6` のみ**（ラベル不要） |
+| `itch-only` | itch 再 push のみ（ビルドなし） | 既存タグ **`v0.1.6` のみ** |
 
 - GitHub Release 成功後、**itch 失敗でもワークフロー全体は成功**（itch ステップのみ warning）
-- itch だけやり直す: `itch-only` + `release_tag: v0.1.4`
+- itch だけやり直す: mode=`itch-only`、release_tag=`v0.1.6`（**`release_tag:` は付けない**）
 
 ---
 

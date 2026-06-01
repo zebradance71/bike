@@ -15,7 +15,7 @@ on:
           - full
           - itch-only
       release_tag:
-        description: "Release tag (e.g. v0.1.4). full = attach assets; itch-only = download zip from this release"
+        description: "Tag only — e.g. v0.1.6 (do NOT paste 'release_tag:' prefix)"
         required: true
         type: string
 
@@ -28,6 +28,28 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Resolve release tag
+        id: rel
+        shell: pwsh
+        run: |
+          if ('${{ github.event_name }}' -eq 'push') {
+            $tag = '${{ github.ref_name }}'.Trim()
+          } else {
+            $tag = '${{ inputs.release_tag }}'.Trim()
+            # Users sometimes paste "release_tag: v0.1.6" from docs — strip label.
+            $tag = $tag -replace '^(?i)(release_tag|elease_tag)\s*:\s*', ''
+            $tag = $tag.Trim()
+          }
+          if (-not $tag.StartsWith('v')) { $tag = "v$tag" }
+          if ($tag -notmatch '^v\d+\.\d+\.\d+$') {
+            throw @"
+          Invalid release tag '$tag'.
+          Enter tag only, e.g. v0.1.6 — not 'release_tag: v0.1.6'.
+          "@
+          }
+          "name=$tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          Write-Host "Release tag: $tag"
 
       - uses: actions/setup-node@v4
         with:
@@ -58,7 +80,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ github.event_name == 'push' && github.ref_name || inputs.release_tag }}
+          tag_name: ${{ steps.rel.outputs.name }}
           files: |
             dist-app/*-setup-x64.exe
             dist-app/*-portable-x64.exe
@@ -85,6 +107,24 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Resolve release tag
+        id: rel
+        shell: pwsh
+        run: |
+          if ('${{ github.event_name }}' -eq 'push') {
+            $tag = '${{ github.ref_name }}'.Trim()
+          } else {
+            $tag = '${{ inputs.release_tag }}'.Trim()
+            $tag = $tag -replace '^(?i)(release_tag|elease_tag)\s*:\s*', ''
+            $tag = $tag.Trim()
+          }
+          if (-not $tag.StartsWith('v')) { $tag = "v$tag" }
+          if ($tag -notmatch '^v\d+\.\d+\.\d+$') {
+            throw "Invalid release tag '$tag'. Enter tag only, e.g. v0.1.6."
+          }
+          "name=$tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          Write-Host "Release tag: $tag"
+
       - name: Download dist-app (build artifact)
         if: needs.build.result == 'success'
         uses: actions/download-artifact@v4
@@ -98,15 +138,10 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          $tag = "${{ inputs.release_tag }}".Trim()
-          if (-not $tag.StartsWith('v')) { $tag = "v$tag" }
+          $tag = "${{ steps.rel.outputs.name }}".Trim()
 
           $branding = Get-Content branding.json -Raw | ConvertFrom-Json
-          $pkg = Get-Content package.json -Raw | ConvertFrom-Json
           $version = $tag -replace '^v', ''
-          if ($pkg.version -ne $version) {
-            Write-Host "::warning::package.json version ($($pkg.version)) differs from release tag ($version)"
-          }
 
           $zipName = "$($branding.productName)-$version-win64.zip"
           New-Item -ItemType Directory -Force -Path dist-app | Out-Null
@@ -135,8 +170,7 @@ jobs:
           $pkg = Get-Content package.json -Raw | ConvertFrom-Json
           $branding = Get-Content branding.json -Raw | ConvertFrom-Json
 
-          $tag = "${{ github.event_name == 'push' && github.ref_name || inputs.release_tag }}".Trim()
-          if (-not $tag.StartsWith('v')) { $tag = "v$tag" }
+          $tag = "${{ steps.rel.outputs.name }}".Trim()
           $version = $tag -replace '^v', ''
           $zip = "dist-app/$($branding.productName)-$version-win64.zip"
 
