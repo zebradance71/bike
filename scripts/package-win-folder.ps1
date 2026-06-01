@@ -70,11 +70,13 @@ function Test-ZipSingleRoot {
     Add-Type -AssemblyName System.IO.Compression.FileSystem
     $archive = [System.IO.Compression.ZipFile]::OpenRead($ZipPath)
     try {
-        $roots = $archive.Entries |
+        $roots = @(
+            $archive.Entries |
             ForEach-Object { ($_.FullName -replace '\\', '/') -split '/' | Select-Object -First 1 } |
             Where-Object { $_ } |
             Select-Object -Unique
-        if ($roots.Count -ne 1 -or $roots[0] -ne $ExpectedRoot) {
+        )
+        if (@($roots).Count -ne 1 -or $roots[0] -ne $ExpectedRoot) {
             throw "ZIP $ZipPath expected single root '$ExpectedRoot', got: $($roots -join ', ')"
         }
     } finally {
