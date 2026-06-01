@@ -133,6 +133,13 @@ jobs:
           "name=$tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
           Write-Host "Release tag: $tag"
 
+      - name: Download release artifacts (build)
+        if: needs.build.result == 'success'
+        uses: actions/download-artifact@v4
+        with:
+          name: dist-app
+          path: dist-app
+
       - name: Download itch zip (build artifact)
         if: needs.build.result == 'success'
         uses: actions/download-artifact@v4
@@ -187,6 +194,7 @@ jobs:
 
           $tag = "${{ steps.rel.outputs.name }}".Trim()
           $version = $tag -replace '^v', ''
+          $setup = "dist-app/$($branding.productName)-$version-setup-x64.exe"
           $zip = "dist-app/itch/$($branding.productName)-$version-win64-itch.zip"
           if (-not (Test-Path $zip)) {
             $zip = "dist-app/$($branding.productName)-$version-win64.zip"
@@ -194,7 +202,7 @@ jobs:
 
           if (-not (Test-Path $zip)) {
             Write-Host "dist-app contents:"
-            Get-ChildItem dist-app -ErrorAction SilentlyContinue
+            Get-ChildItem dist-app -Recurse -ErrorAction SilentlyContinue
             throw "Artifact not found: $zip"
           }
 
@@ -217,5 +225,12 @@ jobs:
             $target = "$user/${game}:$channel"
           }
 
-          Write-Host "[butler] push $zip -> $target"
+          Write-Host "[butler] push setup -> $target"
+          if (Test-Path $setup) {
+            butler push $setup $target
+          } else {
+            Write-Host "::warning::setup exe not found: $setup"
+          }
+
+          Write-Host "[butler] push zip -> $target"
           butler push $zip $target

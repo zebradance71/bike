@@ -12,9 +12,12 @@
 
 | ファイル | 向いている人 |
 |----------|--------------|
-| **Ninja2-x.y.z-setup-x64.exe** | **おすすめ** — インストーラ（フォルダが散らからない） |
+| **Ninja2-x.y.z-setup-x64.exe** | **おすすめ** — インストーラ（フォルダを見ない） |
 | **Ninja2-x.y.z-portable-x64.exe** | 単体 exe（解凍不要・1ファイル） |
-| **Ninja2-x.y.z-win64.zip** | フォルダ版（`Ninja2/` フォルダ + README 付き） |
+| **Ninja2-x.y.z-win64.zip** | フォルダ版（`Ninja2/` + README 付き） |
+
+**ZIP を展開すると `Ninja2.exe` の横に `.dll` / `.pak` などが並びます。**  
+これは Discord や VS Code と同じ **Electron（Chromium）の仕様** で、exe から動かせないため **整理（サブフォルダへ移動）はできません**。散らかって見えるのは ZIP 版の限界です。普段フォルダを見たくない場合は **インストーラ** か **portable 単体 exe** を選んでください。
 
 ---
 
