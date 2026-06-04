@@ -101,6 +101,21 @@ let kunaiAppliedDx = 0;
 
 /** Offset from pointer to window top-left while dragging the companion. */
 let dragWindowOffset = { x: 0, y: 0 };
+/** Prod: idle drag needs real hit-testing (forward-only ignores clicks on Windows). */
+let companionPointerInteractive = false;
+
+function applyCompanionMousePassthrough(): void {
+  if (!companionWindow || companionWindow.isDestroyed()) return;
+  if (isDev) {
+    companionWindow.setIgnoreMouseEvents(false);
+    return;
+  }
+  if (companionPointerInteractive) {
+    companionWindow.setIgnoreMouseEvents(false);
+    return;
+  }
+  companionWindow.setIgnoreMouseEvents(true, { forward: true });
+}
 /** Window position immediately before block-mode (restored when block ends). */
 let preBlockCompanionPosition: { x: number; y: number } | null = null;
 /** Main-process block chase tick is active — preserve window position on resize. */
@@ -635,7 +650,7 @@ function createCompanionWindow(): void {
       mode: "detach",
     });
   } else {
-    companionWindow.setIgnoreMouseEvents(true, { forward: true });
+    applyCompanionMousePassthrough();
     companionWindow.loadFile(path.join(__dirname, "../dist/companion.html"));
   }
 
@@ -995,10 +1010,22 @@ ipcMain.handle("companion-get-cursor-point", (event) => {
 });
 
 ipcMain.on(
+  "companion-set-pointer-interactive",
+  (event, enabled: boolean) => {
+    if (!isCompanionSender(ipcGuardCtx, event)) return;
+    companionPointerInteractive = Boolean(enabled);
+    applyCompanionMousePassthrough();
+  }
+);
+
+ipcMain.on(
   "companion-drag-start",
   (event, point: { screenX: number; screenY: number }) => {
     if (!isCompanionSender(ipcGuardCtx, event)) return;
     if (!companionWindow || companionWindow.isDestroyed()) return;
+    if (!isDev) {
+      companionWindow.setIgnoreMouseEvents(false);
+    }
     const [wx, wy] = companionWindow.getPosition();
     dragWindowOffset = {
       x: Math.round(Number(point.screenX)) - wx,
@@ -1028,6 +1055,7 @@ ipcMain.handle("companion-drag-end", (event) => {
   if (!companionWindow || companionWindow.isDestroyed()) return;
   const [x, y] = companionWindow.getPosition();
   writeSettings({ companionX: x, companionY: y });
+  applyCompanionMousePassthrough();
 });
 
 ipcMain.handle("companion-save-pre-block-position", (event) => {
@@ -1218,7 +1246,7 @@ function showCompanionWindow(): void {
   // Re-apply ignore-mouse so a previously-hidden window doesn't accidentally
   // capture clicks (e.g. after dev devtools detached).
   if (!isDev) {
-    companionWindow.setIgnoreMouseEvents(true, { forward: true });
+    applyCompanionMousePassthrough();
   }
 }
 

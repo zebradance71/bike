@@ -95,6 +95,8 @@ const companionAPI = {
       "companion-restore-position",
       durationMs
     ) as Promise<void>,
+  setPointerInteractive: (enabled: boolean) =>
+    ipcRenderer.send("companion-set-pointer-interactive", enabled),
   dragStart: (point: { screenX: number; screenY: number }) =>
     ipcRenderer.send("companion-drag-start", point),
   dragMove: (point: { screenX: number; screenY: number }) =>

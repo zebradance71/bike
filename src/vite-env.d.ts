@@ -30,6 +30,8 @@ interface CompanionAPI {
   }) => Promise<void>;
   peekEdge?: (side: "left" | "right", durationMs: number) => Promise<void>;
   restorePosition?: (durationMs: number) => Promise<void>;
+  /** Prod: enable window hit-testing while idle (bike drag). */
+  setPointerInteractive?: (enabled: boolean) => void;
   dragStart?: (point: { screenX: number; screenY: number }) => void;
   dragMove?: (point: { screenX: number; screenY: number }) => void;
   dragEnd?: () => Promise<void>;

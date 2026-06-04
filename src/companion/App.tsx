@@ -99,6 +99,11 @@ export function App() {
     state.action === "idle" &&
     !blockMode;
 
+  useEffect(() => {
+    if (import.meta.env.DEV) return;
+    window.companion?.setPointerInteractive?.(canDrag);
+  }, [canDrag]);
+
   return (
     <div
       ref={viewportRef}
