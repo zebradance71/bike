@@ -22,6 +22,9 @@ export type AppSettings = {
   lastSpritePx?: number;
   /** Loopback HTTP bridge token (POST /block). Generated on first run. */
   blockBridgeToken?: string;
+  /** User-placed companion window position (screen coords). */
+  companionX?: number;
+  companionY?: number;
 };
 
 const DEFAULTS: AppSettings = {

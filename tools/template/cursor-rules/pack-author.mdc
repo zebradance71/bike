@@ -12,14 +12,18 @@ alwaysApply: false
 .\tools\template\init-new-pack.ps1 -CharacterId fox -DisplayName Fox -AppName FoxCompanion
 ```
 
-## 必須ファイル
+## 必須ファイル（Bike2 テンプレ）
 
 | ファイル | 役割 |
 |---------|------|
-| `pack.ts` | CharacterPack 定義 |
+| `pack.ts` | CharacterPack（`blockChaseCursor`, `spriteAnchorBottomLeft`, `Renderer`） |
 | `actions.ts` | アクション catalog + REQUIRED_STEMS |
-| `useLayers.ts` | 状態機械 → render layers |
+| `useLayers.ts` | idle 振動/排気 + block-run ループ |
+| `blockCursorChase.ts` | ブロック追従 IPC（`active.ts` から re-export） |
+| `CharacterPackRenderer.tsx` | タイヤ痕オーバーレイ |
 | `frames/tierCatalog.ts` | PNG stem 解決 |
+
+`init-new-pack` 後は `scripts/characters/bike/` を `<id>/` にコピーして import スクリプトを揃える。
 
 ## アクション追加
 

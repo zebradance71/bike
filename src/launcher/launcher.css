@@ -1,0 +1,5 @@
+/* Crisp pixel bike on the launcher CTA */
+.launcher-start-ride__bike {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}

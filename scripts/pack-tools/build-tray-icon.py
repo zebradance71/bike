@@ -1,6 +1,6 @@
-"""Generate tray icon assets from design/icon/app-icon-source.png.
+"""Generate tray icon assets from block-idle.png (Bike) or design sources.
 
-Priority: app-icon-source.png > app-icon.svg > idle.png crop.
+Priority (Bike): app-icon-source.png > block-idle.png > app-icon.svg > idle.png.
 
 Usage:
     py -3 scripts/pack-tools/build-tray-icon.py

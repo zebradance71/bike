@@ -26,6 +26,19 @@ def idle_frame_path() -> Path:
     return frames_dir() / "idle.png"
 
 
+def block_idle_frame_path() -> Path:
+    return frames_dir() / "block-idle.png"
+
+
+def icon_frame_path() -> Path:
+    """Preferred companion frame for tray / app icons (Bike → block-idle)."""
+    if load_branding().get("characterId") == "bike":
+        block = block_idle_frame_path()
+        if block.exists():
+            return block
+    return idle_frame_path()
+
+
 def app_icon_svg_path() -> Path:
     """Pixel SVG fallback when no raster source is present."""
     return REPO_ROOT / "design" / "icon" / "app-icon.svg"

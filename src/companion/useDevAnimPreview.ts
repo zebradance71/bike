@@ -11,10 +11,13 @@ import {
 } from "./engine/useCompanionBehavior";
 import type { DisplaySize } from "./displaySize";
 import { useDisplaySize } from "./useDisplaySize";
+import type { IdleDevBeat } from "./characters/types";
 
 export type CompanionAppController = CompanionBehaviorApi & {
   replaySeq: number;
   idleResetSeq: number;
+  idleDevBeat: IdleDevBeat | undefined;
+  idleDevBeatSeq: number;
   showActionDebug: boolean;
   toggleActionDebug: () => void;
   onTransientEnd: () => void;
@@ -67,7 +70,17 @@ export function useCompanionApp(): CompanionAppController {
   );
   const [replaySeq, setReplaySeq] = useState(0);
   const [idleResetSeq, setIdleResetSeq] = useState(0);
+  const [idleDevBeat, setIdleDevBeat] = useState<IdleDevBeat | undefined>(
+    undefined
+  );
+  const [idleDevBeatSeq, setIdleDevBeatSeq] = useState(0);
   const [showActionDebug, setShowActionDebug] = useState(false);
+
+  const triggerIdleDevBeat = useCallback((beat: IdleDevBeat) => {
+    behavior.resetToIdle();
+    setIdleDevBeat(beat);
+    setIdleDevBeatSeq((n) => n + 1);
+  }, [behavior.resetToIdle]);
 
   const bumpReplay = useCallback(() => {
     setReplaySeq((n) => n + 1);
@@ -99,6 +112,26 @@ export function useCompanionApp(): CompanionAppController {
         return;
       }
 
+      if (
+        activeCharacter.id === "bike" &&
+        !e.altKey &&
+        !e.ctrlKey &&
+        !e.metaKey
+      ) {
+        if (e.code === "KeyV" && !e.shiftKey) {
+          e.preventDefault();
+          touchCompanionActivity();
+          triggerIdleDevBeat("vibrate");
+          return;
+        }
+        if (e.code === "KeyE" && !e.shiftKey) {
+          e.preventDefault();
+          touchCompanionActivity();
+          triggerIdleDevBeat("exhaust");
+          return;
+        }
+      }
+
       const action = resolveDevKeyAction(
         devKeyBindings,
         e.code,
@@ -113,12 +146,14 @@ export function useCompanionApp(): CompanionAppController {
 
     document.addEventListener("keydown", onKey, true);
     return () => document.removeEventListener("keydown", onKey, true);
-  }, [behavior, bumpReplay, devKeyBindings, toggleActionDebug]);
+  }, [behavior, bumpReplay, devKeyBindings, toggleActionDebug, triggerIdleDevBeat]);
 
   return {
     ...behavior,
     replaySeq,
     idleResetSeq,
+    idleDevBeat,
+    idleDevBeatSeq,
     showActionDebug,
     toggleActionDebug,
     onTransientEnd,

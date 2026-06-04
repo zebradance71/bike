@@ -52,6 +52,7 @@ export default defineConfig({
         input: {
           preload: "electron/preload.ts",
           "launcher-preload": "electron/launcher-preload.ts",
+          "tire-tracks-preload": "electron/tire-tracks-preload.ts",
         },
         vite: {
           build: {
@@ -85,6 +86,7 @@ export default defineConfig({
       input: {
         launcher: resolve(__dirname, "launcher.html"),
         companion: resolve(__dirname, "companion.html"),
+        "tire-tracks": resolve(__dirname, "tire-tracks.html"),
       },
     },
   },

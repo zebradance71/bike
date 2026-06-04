@@ -29,12 +29,21 @@ chmod +x tools/template/init-new-pack.sh
 
 | ステップ | 出力 |
 |---------|------|
-| テンプレ copy | `src/companion/characters/<id>/` |
-| active 切替 | `src/companion/characters/active.ts` |
+| テンプレ copy（再帰） | `src/companion/characters/<id>/` 一式（block chase / tire tracks / useLayers） |
+| active 切替 | `src/companion/characters/active.ts` + `runBlockCursorChase` export |
 | branding | `branding.json` |
 | package name | `package.json` → `name` |
 | placeholder idle | `src/companion/assets/frames/idle.png` |
 | icons | `build/icon.ico`, `assets/tray.*` |
+
+Bike2 から fork したときは **`-ClearPreviousPacks`** で既存 `characters/bike/` などを削除してから新 ID を展開する。
+
+### テンプレに含まれるランタイム（Ninja 妨害ループではない）
+
+- **ブロック ON**: カーソル追従（main `block-chase` tick）+ 全画面タイヤ痕オーバーレイ
+- **idle**: 画面左下固定、`companionX/Y` ドラッグ保存
+- **idle ビート**: V/E dev キー（振動・排気）
+- **トレイ icon**: 既定 `block-idle` stem（`pack.trayIconStem`）
 
 ---
 
@@ -46,12 +55,15 @@ src/companion/
 │   ├── types.ts          # CharacterPack interface（共通）
 │   ├── active.ts         # ★ 唯一の compile-time 切替点
 │   └── <characterId>/
-│       ├── pack.ts       # CharacterPack 実体
-│       ├── actions.ts    # アクション catalog
-│       ├── useLayers.ts  # 状態機械 → render layers
+│       ├── pack.ts
+│       ├── actions.ts
+│       ├── useLayers.ts
+│       ├── blockCursorChase.ts
+│       ├── CharacterPackRenderer.tsx
+│       ├── tireTracks/useCharacterTireTracks.ts
 │       └── frames/
-│           ├── frameAssetUrl.ts   # FRAME_ASSET_REV
-│           └── tierCatalog.ts     # PNG stem 解決
+│           ├── frameAssetUrl.ts
+│           └── tierCatalog.ts
 ├── assets/frames/*.png   # スプライト（全 pack 共有パス）
 ├── engine/               # 自律行動（触らない）
 └── frames/               # 汎用 DOM slot（触らない）
@@ -76,18 +88,18 @@ tools/template/           # init-new-pack, cursor-rules, itch テンプレ
 - import 後ログ: `chroma sheet - key only, no black paint`
 - `FRAME_ASSET_REV` を bump → `npm run dev` 再起動
 
-### コマンド例（ninja pack）
+### コマンド例（Bike pack — fork 後は `<id>` にコピー）
 
 ```powershell
-# S（座る）
-py -3 scripts/characters/ninja/import-smoke-sit-from-magenta-cells.py
+# block-run（2×2）
+py -3 scripts/characters/bike/import-block-run-from-magenta.py
 
-# RUN（2×2 シート）
-py -3 scripts/characters/ninja/extract-run-cell-refs.py assets/run-sheet.png
-py -3 scripts/characters/ninja/import-run-from-magenta-cells.py
+# idle 振動 / 排気
+py -3 scripts/characters/bike/import-idle-vibrate-from-magenta.py
+py -3 scripts/characters/bike/import-idle-exhaust-from-magenta.py
 ```
 
-旧パス `scripts/import-*.py` も互換シムとして動作する。
+Ninja 系（座る / mission / kunai）は `scripts/characters/ninja/`。compose 共通は `scripts/pack-tools/frame_import_common.py`。
 
 ### アイコン再生成
 

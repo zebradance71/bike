@@ -4,6 +4,7 @@ import { readSettings, writeSettings } from "./settings-store";
 
 const DEFAULT_PORT = 7727;
 const MAX_BODY_BYTES = 4096;
+const DEV_PORT_FALLBACK_ATTEMPTS = 12;
 
 export type BlockBridgeHandlers = {
   onSetBlockMode: (on: boolean) => void;
@@ -11,7 +12,12 @@ export type BlockBridgeHandlers = {
 };
 
 let server: Server | null = null;
+let listeningPort: number | null = null;
 let token: string | null = null;
+
+export function getBlockBridgeListeningPort(): number | null {
+  return listeningPort;
+}
 
 export function resolveBlockHttpPort(raw: unknown): number {
   const n = Number(raw ?? DEFAULT_PORT);
@@ -87,15 +93,8 @@ function sendJson(
   res.end(JSON.stringify(body));
 }
 
-export function startBlockBridge(
-  port: number,
-  handlers: BlockBridgeHandlers,
-  isDev: boolean
-): void {
-  if (server) return;
-  ensureBlockBridgeToken();
-
-  server = createServer((req, res) => {
+function attachBlockRoutes(srv: Server, handlers: BlockBridgeHandlers): void {
+  srv.on("request", (req, res) => {
     if (req.method === "OPTIONS") {
       res.statusCode = 405;
       res.end();
@@ -148,20 +147,67 @@ export function startBlockBridge(
 
     sendJson(res, 404, { ok: false, error: "not found" });
   });
+}
 
-  server.on("error", (err) => {
-    console.warn("[companion][block-http] server error", err);
-  });
+function bindBlockBridge(
+  preferredPort: number,
+  handlers: BlockBridgeHandlers,
+  isDev: boolean,
+  attemptsLeft: number
+): void {
+  const port = preferredPort;
+  const srv = createServer();
+  attachBlockRoutes(srv, handlers);
 
-  server.listen(port, "127.0.0.1", () => {
-    if (isDev) {
-      console.info("[companion][block-http] listening on 127.0.0.1:" + port);
+  srv.once("error", (err: NodeJS.ErrnoException) => {
+    srv.close();
+    if (err.code === "EADDRINUSE" && attemptsLeft > 0) {
+      console.warn(
+        `[companion][block-http] 127.0.0.1:${port} is in use — trying ${port + 1}`
+      );
+      bindBlockBridge(port + 1, handlers, isDev, attemptsLeft - 1);
+      return;
     }
+    console.error(
+      `[companion][block-http] cannot listen on 127.0.0.1:${port} (${err.code ?? err.message}). ` +
+        "Another Bike instance may still be running (check the tray). " +
+        "Quit it, or in PowerShell: Get-NetTCPConnection -LocalPort " +
+        port +
+        " | Select OwningProcess"
+    );
   });
+
+  srv.listen(port, "127.0.0.1", () => {
+    server = srv;
+    listeningPort = port;
+    if (port !== preferredPort) {
+      console.warn(
+        `[companion][block-http] using 127.0.0.1:${port} (configured ${preferredPort} was busy). ` +
+          "Set the browser extension port to match."
+      );
+    }
+    console.info("[companion][block-http] listening on 127.0.0.1:" + port);
+  });
+}
+
+export function startBlockBridge(
+  port: number,
+  handlers: BlockBridgeHandlers,
+  isDev: boolean
+): void {
+  if (server) return;
+  ensureBlockBridgeToken();
+  bindBlockBridge(
+    port,
+    handlers,
+    isDev,
+    isDev ? DEV_PORT_FALLBACK_ATTEMPTS : 0
+  );
 }
 
 export function stopBlockBridge(): void {
   if (!server) return;
   server.close();
   server = null;
+  listeningPort = null;
 }

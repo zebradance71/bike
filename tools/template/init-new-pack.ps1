@@ -1,7 +1,9 @@
 # Initialize a new character pack in this repo (1 repo = 1 character = 1 .exe).
+# Bike2-derived template: block cursor chase, tire tracks, bottom-left idle + drag.
 #
 # Usage:
 #   .\tools\template\init-new-pack.ps1 -CharacterId fox -DisplayName Fox -AppName FoxCompanion
+#   .\tools\template\init-new-pack.ps1 -CharacterId fox ... -ClearPreviousPacks
 #
 param(
     [Parameter(Mandatory = $true)]
@@ -15,25 +17,36 @@ param(
 
     [string]$Author = "ToriiLabs",
     [string]$Description = "A small desktop companion",
-    [int]$BlockBridgePort = 7727
+    [int]$BlockBridgePort = 7727,
+
+    [switch]$ClearPreviousPacks
 )
 
 $ErrorActionPreference = "Stop"
 $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 $TemplateDir = Join-Path $RepoRoot "tools\template\character-pack"
-$PackDir = Join-Path $RepoRoot "src\companion\characters\$CharacterId"
-$ActiveTs = Join-Path $RepoRoot "src\companion\characters\active.ts"
+$CharactersDir = Join-Path $RepoRoot "src\companion\characters"
+$PackDir = Join-Path $CharactersDir $CharacterId
+$ActiveTs = Join-Path $CharactersDir "active.ts"
 $BrandingJson = Join-Path $RepoRoot "branding.json"
 $BrandingTemplate = Join-Path $RepoRoot "tools\template\branding.template.json"
 $PackageJson = Join-Path $RepoRoot "package.json"
 
 if (Test-Path $PackDir) {
-    throw "Pack directory already exists: $PackDir"
+    throw "Pack directory already exists: $PackDir (remove it or use another -CharacterId)"
+}
+
+if ($ClearPreviousPacks) {
+    Write-Host "[init-new-pack] removing previous character pack directories"
+    Get-ChildItem $CharactersDir -Directory | ForEach-Object {
+        if ($_.Name -eq $CharacterId) { return }
+        Write-Host "  - $($_.FullName)"
+        Remove-Item $_.FullName -Recurse -Force
+    }
 }
 
 Write-Host "[init-new-pack] copying template -> $PackDir"
 New-Item -ItemType Directory -Path $PackDir -Force | Out-Null
-Copy-Item -Recurse (Join-Path $TemplateDir "frames") (Join-Path $PackDir "frames")
 
 $replacements = @{
     "{{CHARACTER_ID}}" = $CharacterId
@@ -50,26 +63,41 @@ function Write-Utf8NoBom {
     [System.IO.File]::WriteAllText($Path, $Content, $utf8)
 }
 
+function Expand-TemplateText {
+    param([string]$Text)
+    foreach ($key in $replacements.Keys) {
+        $text = $Text.Replace($key, $replacements[$key])
+    }
+    return $text
+}
+
 function Expand-TemplateFile {
     param([string]$Src, [string]$Dst)
     $text = Get-Content $Src -Raw -Encoding UTF8
-    foreach ($key in $replacements.Keys) {
-        $text = $text.Replace($key, $replacements[$key])
-    }
-    Set-Content -Path $Dst -Value $text -Encoding UTF8 -NoNewline
+    Write-Utf8NoBom -Path $Dst -Content (Expand-TemplateText $text)
 }
 
-Expand-TemplateFile (Join-Path $TemplateDir "pack.ts") (Join-Path $PackDir "pack.ts")
-Expand-TemplateFile (Join-Path $TemplateDir "actions.ts") (Join-Path $PackDir "actions.ts")
-Expand-TemplateFile (Join-Path $TemplateDir "useLayers.ts") (Join-Path $PackDir "useLayers.ts")
+$skipCopy = @("generate-placeholder-idle.py")
+Get-ChildItem $TemplateDir -Recurse -File | Where-Object { $skipCopy -notcontains $_.Name } | ForEach-Object {
+    $rel = $_.FullName.Substring($TemplateDir.Length).TrimStart("\", "/")
+    $dst = Join-Path $PackDir $rel
+    $parent = Split-Path $dst -Parent
+    if (-not (Test-Path $parent)) {
+        New-Item -ItemType Directory -Path $parent -Force | Out-Null
+    }
+    if ($_.Extension -eq ".ts") {
+        Expand-TemplateFile $_.FullName $dst
+    } else {
+        Copy-Item $_.FullName $dst -Force
+    }
+}
 
-# Rename export in pack.ts: characterPack -> ${CharacterId}Pack
-$packTs = Get-Content (Join-Path $PackDir "pack.ts") -Raw -Encoding UTF8
 $exportName = "${CharacterId}Pack"
+$packTsPath = Join-Path $PackDir "pack.ts"
+$packTs = Get-Content $packTsPath -Raw -Encoding UTF8
 $packTs = $packTs -replace "export const characterPack", "export const $exportName"
-Set-Content (Join-Path $PackDir "pack.ts") -Value $packTs -Encoding UTF8 -NoNewline
+Write-Utf8NoBom -Path $packTsPath -Content $packTs
 
-# active.ts
 $activeContent = @"
 import { $exportName } from "./$CharacterId/pack";
 
@@ -77,6 +105,10 @@ export type { ActionKey } from "./$CharacterId/actions";
 export { FRAME_ASSET_REV } from "./$CharacterId/frames/frameAssetUrl";
 export { frameTierResolveDebug } from "./$CharacterId/frames/tierCatalog";
 export { resolveStemUrl as resolvePackStemUrl } from "./$CharacterId/actions";
+export {
+  runBlockCursorChase,
+  endBlockCursorChase,
+} from "./$CharacterId/blockCursorChase";
 
 /**
  * The single character pack baked into this build.
@@ -86,25 +118,25 @@ export const activeCharacter = $exportName;
 "@
 Write-Utf8NoBom -Path $ActiveTs -Content $activeContent
 
-# branding.json
 Expand-TemplateFile $BrandingTemplate $BrandingJson
 $branding = Get-Content $BrandingJson -Raw -Encoding UTF8 | ConvertFrom-Json
+$branding.appName = $DisplayName
+$branding.productName = $DisplayName
+$branding.displayName = $DisplayName
+$branding.characterId = $CharacterId
 $branding.blockBridgePort = $BlockBridgePort
 Write-Utf8NoBom -Path $BrandingJson -Content (($branding | ConvertTo-Json -Depth 4) + "`n")
 
-# package.json name
 $pkg = Get-Content $PackageJson -Raw -Encoding UTF8 | ConvertFrom-Json
 $pkg.name = $CharacterId
 $pkg.description = $Description
 Write-Utf8NoBom -Path $PackageJson -Content (($pkg | ConvertTo-Json -Depth 6) + "`n")
 
-# placeholder idle.png
 Write-Host "[init-new-pack] generating placeholder idle.png"
 Push-Location $RepoRoot
 py -3 tools/template/character-pack/generate-placeholder-idle.py
 Pop-Location
 
-# icons
 Write-Host "[init-new-pack] building tray + app icons"
 Push-Location $RepoRoot
 py -3 scripts/pack-tools/build-tray-icon.py
@@ -113,7 +145,7 @@ Pop-Location
 
 Write-Host ""
 Write-Host "Done. Next steps:"
-Write-Host "  1. npm run dev"
-Write-Host "  2. Replace src/companion/assets/frames/idle.png with your character art"
-Write-Host "  3. Add actions in src/companion/characters/$CharacterId/actions.ts"
+Write-Host "  1. npm run dev  (B = block chase, V/E = idle beats)"
+Write-Host "  2. Import frames -> src/companion/assets/frames/  (see docs/character-pack-spec.md)"
+Write-Host "  3. Copy scripts/characters/bike/ -> scripts/characters/$CharacterId/ and adapt imports"
 Write-Host "  4. npm run build:icons && npm run dist"

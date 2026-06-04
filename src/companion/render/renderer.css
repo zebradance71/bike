@@ -3,6 +3,7 @@
   inset: 0;
   overflow: visible;
   pointer-events: none;
+  z-index: 1;
 }
 
 .companion-sprite-root {
@@ -13,6 +14,21 @@
   height: var(--sprite-render);
   transform: translateX(-50%);
   overflow: visible;
+}
+
+.companion-sprite-root--anchor-bl {
+  left: 0;
+  transform: none;
+}
+
+.companion-sprite-root--anchor-bl.companion-sprite-root--draggable {
+  pointer-events: auto;
+  cursor: grab;
+  touch-action: none;
+}
+
+.companion-sprite-root--anchor-bl.companion-sprite-root--draggable:active {
+  cursor: grabbing;
 }
 
 .companion-fx-layer {
@@ -42,6 +58,11 @@
   width: var(--sprite-render);
   height: var(--sprite-render);
   transform: translateX(-50%);
+}
+
+.companion-sprite-root--anchor-bl .companion-sprite-wrap {
+  left: 0;
+  transform: none;
 }
 
 .companion-sprite-root .companion-body-slot {

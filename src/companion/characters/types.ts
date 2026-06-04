@@ -67,6 +67,9 @@ export type CompanionRenderLayers = {
   frameIndex: number;
 };
 
+/** Bike dev keys: instant idle embellishment preview (V / E). */
+export type IdleDevBeat = "vibrate" | "exhaust";
+
 export type UseLayersOptions = {
   /**
    * Bumped to force the pack to forget any in-progress transient and
@@ -77,6 +80,10 @@ export type UseLayersOptions = {
   replaySeq?: number;
   /** Called when a one-shot transient finishes (mission / smoke / kunai etc). */
   onTransientEnd?: () => void;
+  /** Dev-only: play one idle vibrate or exhaust sequence immediately. */
+  idleDevBeat?: IdleDevBeat;
+  /** Increment to re-fire `idleDevBeat` while action stays idle. */
+  idleDevBeatSeq?: number;
 };
 
 export type UseLayersHook = (
@@ -91,6 +98,10 @@ export type RendererProps = {
   idleResetSeq?: number;
   replaySeq?: number;
   onTransientEnd?: () => void;
+  idleDevBeat?: IdleDevBeat;
+  idleDevBeatSeq?: number;
+  /** Allow dragging the companion window by the sprite. */
+  draggable?: boolean;
 };
 
 /**
@@ -142,6 +153,21 @@ export type CharacterPack = {
     action: string,
     renderWidthPx: number
   ) => number;
+
+  /**
+   * When true, block-mode follows the system cursor (Bike) instead of the
+   * ninja-style random disruption loop.
+   */
+  readonly blockChaseCursor?: boolean;
+
+  /** Per-display tire-mark overlay windows during block chase. */
+  readonly blockChaseTireTracks?: boolean;
+
+  /**
+   * Sprite anchored to the viewport bottom-left; default window position
+   * is the work-area bottom-left. Enables drag-to-reposition when idle.
+   */
+  readonly spriteAnchorBottomLeft?: boolean;
 };
 
 /** Pack-defined action keys for the active build (narrowed at runtime). */

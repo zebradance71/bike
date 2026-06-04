@@ -13,7 +13,14 @@ except ImportError as exc:  # pragma: no cover
 
 from frame_import_common import is_black_bg
 from icon_from_svg import compose_square_nearest, load_icon_master as load_icon_master_svg
-from resolve_paths import app_icon_png_path, app_icon_svg_path, idle_frame_path
+from resolve_paths import (
+    app_icon_png_path,
+    app_icon_svg_path,
+    block_idle_frame_path,
+    icon_frame_path,
+    idle_frame_path,
+    load_branding,
+)
 
 MASTER_PX = 256
 ICON_PAD_RATIO = 0.06
@@ -96,16 +103,25 @@ def _master_from_idle(master_px: int) -> Image.Image:
 
 
 def resolve_icon_source() -> Path:
+    if load_branding().get("characterId") == "bike":
+        block = block_idle_frame_path()
+        if block.exists():
+            return block
     png = app_icon_png_path()
     if png.exists():
         return png
     svg = app_icon_svg_path()
     if svg.exists():
         return svg
-    return idle_frame_path()
+    return icon_frame_path()
 
 
 def load_icon_master(master_px: int = MASTER_PX) -> tuple[Image.Image, Path]:
+    if load_branding().get("characterId") == "bike":
+        block = block_idle_frame_path()
+        if block.exists():
+            return _master_from_png(block, master_px), block
+
     png = app_icon_png_path()
     if png.exists():
         return _master_from_png(png, master_px), png
@@ -114,5 +130,8 @@ def load_icon_master(master_px: int = MASTER_PX) -> tuple[Image.Image, Path]:
     if svg.exists():
         return load_icon_master_svg(svg, master_px), svg
 
-    idle = idle_frame_path()
-    return _master_from_idle(master_px), idle
+    frame = icon_frame_path()
+    if frame.exists() and frame != idle_frame_path():
+        return _master_from_png(frame, master_px), frame
+
+    return _master_from_idle(master_px), idle_frame_path()

@@ -1,6 +1,6 @@
-"""Generate Windows app icon (`build/icon.ico`) from design/icon/app-icon-source.png.
+"""Generate Windows app icon (`build/icon.ico`) from block-idle.png (Bike) etc.
 
-Priority: app-icon-source.png > app-icon.svg > idle.png crop.
+Priority (Bike): app-icon-source.png > block-idle.png > app-icon.svg > idle.png.
 
 Usage:
     py -3 scripts/pack-tools/build-app-icon.py

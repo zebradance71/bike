@@ -10,6 +10,7 @@ body,
 .companion-viewport {
   position: relative;
   background: transparent;
+  overflow: visible;
 }
 
 /* dev: whole companion window receives clicks (prod uses Electron click-through) */

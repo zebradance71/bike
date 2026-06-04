@@ -19,6 +19,7 @@ import {
   stopTitleWatcher,
   updateTitleWatcherSelfPids,
 } from "./title-watcher";
+import { appIconCandidates, resolveAppIcon } from "./app-icon";
 import { branding } from "./branding";
 import { createAppTray, destroyAppTray, refreshTrayMenu } from "./tray";
 import {
@@ -27,6 +28,8 @@ import {
   appendStartupLog,
   installProcessCrashHandlers,
 } from "./startup-guard";
+import { createBlockChaseController } from "./block-chase-controller";
+import { createTireTracksWindowsManager } from "./tire-tracks-windows";
 import {
   attachRendererGuards,
   clampAnimationMs,
@@ -96,6 +99,84 @@ let kunaiAppliedLeftPx = 0;
 /** Actual horizontal delta applied when last expanded (negative or 0). */
 let kunaiAppliedDx = 0;
 
+/** Offset from pointer to window top-left while dragging the companion. */
+let dragWindowOffset = { x: 0, y: 0 };
+/** Window position immediately before block-mode (restored when block ends). */
+let preBlockCompanionPosition: { x: number; y: number } | null = null;
+/** Main-process block chase tick is active — preserve window position on resize. */
+let blockChaseEnabled = false;
+
+const tireTracksWindows = createTireTracksWindowsManager({
+  isDev,
+  attachRendererGuards,
+  rendererWebPreferences,
+  getPreloadPath: getTireTracksPreloadPath,
+  devUrlTireTracks: () => devUrl("tire-tracks"),
+  prodHtmlPath: () => path.join(__dirname, "../dist/tire-tracks.html"),
+});
+
+let blockChase = createBlockChaseController({
+  getCompanionWindow: () => companionWindow,
+  getSpriteSizePx: () => spriteSizePx,
+  tireTracks: tireTracksWindows,
+  raiseCompanion: () => {
+    if (companionWindow && !companionWindow.isDestroyed()) {
+      companionWindow.setAlwaysOnTop(true, "screen-saver");
+      companionWindow.moveTop();
+    }
+  },
+});
+
+/** Debounced handler for monitor hot-plug / DPI / work-area changes. */
+let displayTopologyTimer: ReturnType<typeof setTimeout> | null = null;
+
+function handleDisplayTopologyChange(reason: string): void {
+  tireTracksWindows.onDisplayTopologyChanged();
+
+  if (blockChaseEnabled) {
+    blockChase.onDisplayTopologyChanged();
+  } else if (companionWindow && !companionWindow.isDestroyed()) {
+    const [x, y] = companionWindow.getPosition();
+    const [w, h] = companionWindow.getSize();
+    const clamped = clampCompanionWindowPosition(x, y, w, h);
+    if (clamped.x !== x || clamped.y !== y) {
+      companionWindow.setPosition(clamped.x, clamped.y);
+    }
+  }
+
+  if (isDev) {
+    console.debug("[companion][display-topology]", {
+      reason,
+      blockChaseEnabled,
+      displays: screen.getAllDisplays().map((d) => ({
+        id: d.id,
+        workArea: d.workArea,
+        scaleFactor: d.scaleFactor,
+      })),
+    });
+  }
+}
+
+function scheduleDisplayTopologyChange(reason: string): void {
+  if (displayTopologyTimer) clearTimeout(displayTopologyTimer);
+  displayTopologyTimer = setTimeout(() => {
+    displayTopologyTimer = null;
+    handleDisplayTopologyChange(reason);
+  }, 150);
+}
+
+function registerDisplayTopologyListeners(): void {
+  screen.on("display-added", (_event, display) => {
+    scheduleDisplayTopologyChange(`added:${display.id}`);
+  });
+  screen.on("display-removed", (_event, display) => {
+    scheduleDisplayTopologyChange(`removed:${display.id}`);
+  });
+  screen.on("display-metrics-changed", (_event, display) => {
+    scheduleDisplayTopologyChange(`metrics:${display.id}`);
+  });
+}
+
 const ipcGuardCtx: IpcGuardContext = {
   isDev,
   getCompanion: () => companionWindow,
@@ -108,6 +189,30 @@ const BLOCK_HTTP_PORT = resolveBlockHttpPort(
 let blockModeMirror = false;
 
 type Bounds = { x: number; y: number; width: number; height: number };
+
+/** Union of all monitor work areas — idle drag / restore can cross displays. */
+function virtualDesktopWorkArea(): {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+} {
+  let x = Infinity;
+  let y = Infinity;
+  let x2 = -Infinity;
+  let y2 = -Infinity;
+  for (const display of screen.getAllDisplays()) {
+    const wa = display.workArea;
+    x = Math.min(x, wa.x);
+    y = Math.min(y, wa.y);
+    x2 = Math.max(x2, wa.x + wa.width);
+    y2 = Math.max(y2, wa.y + wa.height);
+  }
+  if (!Number.isFinite(x)) {
+    return screen.getPrimaryDisplay().workArea;
+  }
+  return { x, y, width: x2 - x, height: y2 - y };
+}
 
 function workAreaBounds(): {
   x: number;
@@ -203,6 +308,54 @@ function animateCompanionX(
   });
 }
 
+function animateCompanionDelta(
+  deltaX: number,
+  deltaY: number,
+  durationMs: number
+): Promise<void> {
+  return new Promise((resolve) => {
+    if (!companionWindow) {
+      resolve();
+      return;
+    }
+
+    const [fromX, fromY] = companionWindow.getPosition();
+    const [w, h] = companionWindow.getSize();
+    const target = clampCompanionWindowPosition(
+      fromX + Math.round(deltaX),
+      fromY + Math.round(deltaY),
+      w,
+      h
+    );
+    const targetX = target.x;
+    const targetY = target.y;
+    const start = Date.now();
+    const spanX = targetX - fromX;
+    const spanY = targetY - fromY;
+
+    const tick = () => {
+      if (!companionWindow) {
+        resolve();
+        return;
+      }
+
+      const t = Math.min(1, (Date.now() - start) / clampAnimationMs(durationMs));
+      const eased = t * (2 - t);
+      const x = Math.round(fromX + spanX * eased);
+      const y = Math.round(fromY + spanY * eased);
+      companionWindow.setPosition(x, y);
+
+      if (t < 1) {
+        setTimeout(tick, 16);
+      } else {
+        resolve();
+      }
+    };
+
+    tick();
+  });
+}
+
 function baseWindowPxForSprite(spritePx: number): number {
   const sprite = [48, 64, 96].includes(spritePx) ? spritePx : DEFAULT_SPRITE_PX;
   return sprite + WINDOW_CHROME_PX;
@@ -222,7 +375,11 @@ function getPreloadPath(kind: "launcher" | "companion"): string {
   return path.join(__dirname, file);
 }
 
-function devUrl(page: "launcher" | "companion"): string {
+function getTireTracksPreloadPath(): string {
+  return path.join(__dirname, "tire-tracks-preload.mjs");
+}
+
+function devUrl(page: "launcher" | "companion" | "tire-tracks"): string {
   const base = process.env.VITE_DEV_SERVER_URL ?? "http://localhost:5173";
   return `${base}/${page}.html`;
 }
@@ -233,6 +390,7 @@ function createLauncherWindow(): void {
     launcherWindow.focus();
     return;
   }
+  const windowIcon = resolveAppIcon();
   launcherWindow = new BrowserWindow({
     width: 360,
     height: 280,
@@ -240,7 +398,8 @@ function createLauncherWindow(): void {
     maximizable: false,
     fullscreenable: false,
     show: !startedHidden,
-    title: "NINJA",
+    title: branding.productName,
+    icon: windowIcon,
     backgroundColor: "#f5f0e8",
     webPreferences: rendererWebPreferences(getPreloadPath("launcher")),
   });
@@ -338,10 +497,14 @@ function applyCompanionSize(spritePx: number): void {
   if (!companionWindow) return;
 
   const winPx = baseWindowPxForSprite(spriteSizePx);
-  const [x] = companionWindow.getPosition();
-  const y = companionY(winPx);
-  companionWindow.setSize(winPx, winPx);
-  companionWindow.setPosition(x, y);
+  if (blockChaseEnabled) {
+    companionWindow.setSize(winPx, winPx);
+  } else {
+    const [x] = companionWindow.getPosition();
+    const y = companionY(winPx);
+    companionWindow.setSize(winPx, winPx);
+    companionWindow.setPosition(x, y);
+  }
   appliedSmokeExtraPx = 0;
 }
 
@@ -442,6 +605,7 @@ function createCompanionWindow(): void {
     height: winPx,
     x,
     y,
+    icon: resolveAppIcon(),
     transparent: true,
     frame: false,
     alwaysOnTop: true,
@@ -461,6 +625,7 @@ function createCompanionWindow(): void {
   });
 
   attachRendererGuards(companionWindow, isDev);
+  companionWindow.setAlwaysOnTop(true, "screen-saver");
 
   if (isDev) {
     companionWindow.setIgnoreMouseEvents(false);
@@ -484,20 +649,72 @@ function createCompanionWindow(): void {
     }
   });
   companionWindow.on("closed", () => {
+    blockChase.onCompanionClosed();
+    hideTireTracksOverlay();
+    destroyTireTracksWindows();
     companionWindow = null;
   });
+}
+
+function clampCompanionWindowPosition(
+  x: number,
+  y: number,
+  winW: number,
+  winH: number
+): { x: number; y: number } {
+  const area = virtualDesktopWorkArea();
+  return {
+    x: clamp(x, area.x, area.x + area.width - winW),
+    y: clamp(y, area.y, area.y + area.height - winH),
+  };
+}
+
+function defaultBottomLeftCompanionPosition(
+  winW: number,
+  marginX: number = COMPANION_MARGIN,
+  marginY: number = COMPANION_MARGIN
+): { x: number; y: number } {
+  const area = workAreaBounds();
+  return clampCompanionWindowPosition(
+    area.x + marginX,
+    area.y + area.height - winW - marginY,
+    winW,
+    winW
+  );
+}
+
+function resolveCompanionPosition(winW: number): { x: number; y: number } {
+  if (branding.characterId === "bike") {
+    const saved = readSettings();
+    if (saved.companionX != null && saved.companionY != null) {
+      return clampCompanionWindowPosition(
+        saved.companionX,
+        saved.companionY,
+        winW,
+        winW
+      );
+    }
+    return defaultBottomLeftCompanionPosition(winW);
+  }
+
+  const centerX = pickTargetSpriteCenterX(winW, COMPANION_MARGIN);
+  const area = workAreaBounds();
+  const y = area.y + area.height - winW - COMPANION_MARGIN;
+  return { x: Math.round(centerX - winW / 2), y };
 }
 
 function companionPosition(
   winW: number,
   options?: { scatterToSides?: boolean; marginX?: number; marginY?: number }
 ): { x: number; y: number } {
+  if (branding.characterId === "bike" && !options?.scatterToSides) {
+    return resolveCompanionPosition(winW);
+  }
+
   const centerX = pickTargetSpriteCenterX(
     winW,
     options?.marginX ?? COMPANION_MARGIN
   );
-  // workAreaBounds() handles multi-monitor; before companionWindow exists it
-  // falls back to primary, which matches first-mount behavior.
   const area = workAreaBounds();
   const y = area.y + area.height - winW - (options?.marginY ?? COMPANION_MARGIN);
   return { x: Math.round(centerX - winW / 2), y };
@@ -771,6 +988,151 @@ ipcMain.handle(
   }
 );
 
+ipcMain.handle("companion-get-cursor-point", (event) => {
+  if (!isCompanionSender(ipcGuardCtx, event)) return null;
+  const p = screen.getCursorScreenPoint();
+  return { x: p.x, y: p.y };
+});
+
+ipcMain.on(
+  "companion-drag-start",
+  (event, point: { screenX: number; screenY: number }) => {
+    if (!isCompanionSender(ipcGuardCtx, event)) return;
+    if (!companionWindow || companionWindow.isDestroyed()) return;
+    const [wx, wy] = companionWindow.getPosition();
+    dragWindowOffset = {
+      x: Math.round(Number(point.screenX)) - wx,
+      y: Math.round(Number(point.screenY)) - wy,
+    };
+  }
+);
+
+ipcMain.on(
+  "companion-drag-move",
+  (event, point: { screenX: number; screenY: number }) => {
+    if (!isCompanionSender(ipcGuardCtx, event)) return;
+    if (!companionWindow || companionWindow.isDestroyed()) return;
+    const [w, h] = companionWindow.getSize();
+    const next = clampCompanionWindowPosition(
+      Math.round(Number(point.screenX)) - dragWindowOffset.x,
+      Math.round(Number(point.screenY)) - dragWindowOffset.y,
+      w,
+      h
+    );
+    companionWindow.setPosition(next.x, next.y);
+  }
+);
+
+ipcMain.handle("companion-drag-end", (event) => {
+  if (!isCompanionSender(ipcGuardCtx, event)) return;
+  if (!companionWindow || companionWindow.isDestroyed()) return;
+  const [x, y] = companionWindow.getPosition();
+  writeSettings({ companionX: x, companionY: y });
+});
+
+ipcMain.handle("companion-save-pre-block-position", (event) => {
+  if (!isCompanionSender(ipcGuardCtx, event)) return;
+  if (!companionWindow || companionWindow.isDestroyed()) return;
+  const [x, y] = companionWindow.getPosition();
+  preBlockCompanionPosition = { x, y };
+  if (isDev) {
+    console.debug("[companion][block] saved pre-block position", { x, y });
+  }
+});
+
+ipcMain.handle(
+  "companion-restore-pre-block-position",
+  async (event, durationMs: number) => {
+    if (!isCompanionSender(ipcGuardCtx, event)) return;
+    if (!companionWindow || companionWindow.isDestroyed()) return;
+
+    const [w, h] = companionWindow.getSize();
+    const fallback = resolveCompanionPosition(w);
+    const target = clampCompanionWindowPosition(
+      preBlockCompanionPosition?.x ?? fallback.x,
+      preBlockCompanionPosition?.y ?? fallback.y,
+      w,
+      h
+    );
+    preBlockCompanionPosition = null;
+
+    const [cx, cy] = companionWindow.getPosition();
+    await animateCompanionDelta(
+      target.x - cx,
+      target.y - cy,
+      clampAnimationMs(durationMs)
+    );
+  }
+);
+
+function showTireTracksOverlay(): void {
+  blockChase.clearOverlayMarks();
+  const cursor = screen.getCursorScreenPoint();
+  tireTracksWindows.ensureDisplaysVisible([
+    screen.getDisplayNearestPoint(cursor).id,
+  ]);
+  if (companionWindow && !companionWindow.isDestroyed()) {
+    companionWindow.setAlwaysOnTop(true, "screen-saver");
+    companionWindow.moveTop();
+  }
+  blockChase.onOverlayShown();
+}
+
+function hideTireTracksOverlay(): void {
+  blockChase.onOverlayHidden();
+  blockChase.clearOverlayMarks();
+  tireTracksWindows.hideAll();
+}
+
+function destroyTireTracksWindows(): void {
+  tireTracksWindows.destroyAll();
+}
+
+ipcMain.handle(
+  "companion-set-tire-track-overlay",
+  (event, enabled: boolean) => {
+    if (!isCompanionSender(ipcGuardCtx, event)) return;
+    if (enabled) showTireTracksOverlay();
+    else hideTireTracksOverlay();
+  }
+);
+
+ipcMain.handle(
+  "companion-set-block-chase",
+  (
+    event,
+    options: {
+      enabled: boolean;
+      offsetX?: number;
+      offsetY?: number;
+      tireTracks?: boolean;
+    }
+  ) => {
+    if (!isCompanionSender(ipcGuardCtx, event)) return;
+
+    blockChase.setOffsets(options.offsetX, options.offsetY);
+    blockChaseEnabled = Boolean(options.enabled);
+    blockChase.setEnabled(options.enabled, Boolean(options.tireTracks));
+    if (blockChaseEnabled && companionWindow && !companionWindow.isDestroyed()) {
+      companionWindow.setAlwaysOnTop(true, "screen-saver");
+      companionWindow.moveTop();
+    }
+  }
+);
+
+ipcMain.handle(
+  "companion-slide-delta",
+  async (event, deltaX: number, deltaY: number, durationMs: number) => {
+    if (!isCompanionSender(ipcGuardCtx, event)) return;
+    if (!companionWindow) return;
+    await animateCompanionDelta(
+      Number(deltaX) || 0,
+      Number(deltaY) || 0,
+      clampAnimationMs(durationMs)
+    );
+  }
+);
+
 ipcMain.handle(
   "companion-slide-x",
   async (event, deltaPx: number, durationMs: number) => {
@@ -778,7 +1140,7 @@ ipcMain.handle(
     if (!companionWindow) return;
     const [fromX, y] = companionWindow.getPosition();
     const winW = companionWindow.getSize()[0];
-    const area = workAreaBounds();
+    const area = virtualDesktopWorkArea();
     const minX = area.x;
     const maxX = area.x + area.width - winW;
     // Wedge-rescue: if the window is currently outside the workArea (e.g.
@@ -976,22 +1338,7 @@ app.whenReady().then(() => {
   // Tray. Built last so getCompanion()/getLauncher() return up-to-date refs.
   createAppTray({
     isDev,
-    iconCandidates: [
-      // Production / packaged: assets/ ships next to the executable.
-      path.join(process.resourcesPath ?? "", "assets", "tray.ico"),
-      path.join(process.resourcesPath ?? "", "assets", "tray.png"),
-      // Repo-relative paths (dev + unpackaged builds).
-      path.join(__dirname, "../assets/tray.ico"),
-      path.join(__dirname, "../assets/tray.png"),
-      path.join(__dirname, "../../assets/tray.ico"),
-      path.join(__dirname, "../../assets/tray.png"),
-      // Dev-time last resort: use the idle sprite directly. Electron will
-      // downscale it automatically. Slightly fuzzy at 16px but the user
-      // immediately sees the companion in the tray instead of a blank
-      // square while they wait to run `py -3 scripts/build-tray-icon.py`.
-      path.join(__dirname, "../src/companion/assets/frames/idle.png"),
-      path.join(__dirname, "../../src/companion/assets/frames/idle.png"),
-    ],
+    iconCandidates: appIconCandidates(),
     getLauncher: () => launcherWindow,
     getCompanion: () => companionWindow,
     showLauncher: () => showLauncherWindow(),
@@ -1003,6 +1350,7 @@ app.whenReady().then(() => {
     quit: () => quitApp(),
   });
 
+  registerDisplayTopologyListeners();
 });
 
 /**

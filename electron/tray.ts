@@ -92,9 +92,20 @@ function companionVisible(): boolean {
   return !!(w && !w.isDestroyed() && w.isVisible());
 }
 
+/** OS login-item truth (settings file can drift on Windows). */
+function readAutoStartApplied(): boolean {
+  if (process.platform === "darwin" || process.platform === "win32") {
+    try {
+      return app.getLoginItemSettings().openAtLogin;
+    } catch {
+      return readSettings().autoStart;
+    }
+  }
+  return readSettings().autoStart;
+}
+
 function rebuildMenu(): void {
   if (!tray || !deps) return;
-  const settings = readSettings();
   const block = deps.isBlockMode();
   const visible = companionVisible();
 
@@ -148,14 +159,43 @@ function rebuildMenu(): void {
     { type: "separator" },
     {
       label: "Start with Windows",
-      type: "checkbox",
-      checked: settings.autoStart,
-      click: (item) => {
-        const applied = deps?.setAutoStart(!!item.checked) ?? false;
-        writeSettings({ autoStart: applied });
-        // Re-sync the menu in case the OS rejected the change.
-        rebuildMenu();
-      },
+      submenu: (() => {
+        const autoOn = readAutoStartApplied();
+        const items: MenuItemConstructorOptions[] = [
+          {
+            label: `Currently: ${autoOn ? "ON" : "OFF"}`,
+            enabled: false,
+          },
+        ];
+        if (deps.isDev) {
+          items.push({
+            label: "Dev mode: use installed .exe (npm run dist)",
+            enabled: false,
+          });
+        }
+        items.push(
+          { type: "separator" },
+          {
+            label: "Turn ON",
+            enabled: !autoOn,
+            click: () => {
+              const applied = deps?.setAutoStart(true) ?? false;
+              writeSettings({ autoStart: applied });
+              rebuildMenu();
+            },
+          },
+          {
+            label: "Turn OFF",
+            enabled: autoOn,
+            click: () => {
+              const applied = deps?.setAutoStart(false) ?? false;
+              writeSettings({ autoStart: applied });
+              rebuildMenu();
+            },
+          }
+        );
+        return items;
+      })(),
     },
     { type: "separator" },
     {

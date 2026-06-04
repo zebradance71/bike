@@ -1,0 +1,24 @@
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  overflow: hidden;
+}
+
+.tracks-stage {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  /* Avoid compositing blur/bleed through transparent overlay (Windows). */
+  isolation: isolate;
+}
+
+.tracks-canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}

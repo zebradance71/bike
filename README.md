@@ -1,6 +1,6 @@
-# NINJA — Silent Ninja Companion
+# Companion base (Bike2)
 
-小さな忍者がデスクトップに静かにいる、ミニマルな常駐コンパニオン。
+デスクトップ常駐コンパニオンの **1 repo = 1 キャラ** 基盤。既定パックは **Bike**（ブロック時カーソル追従・タイヤ痕・idle 左下固定＋ドラッグ）。
 
 ## 開発
 
@@ -9,21 +9,24 @@ npm install
 npm run dev
 ```
 
-別ターミナルで Electron を起動する場合は `vite` の dev server が立ったあと:
+## 別キャラにする（fork 後）
 
-```bash
-npx electron .
+```powershell
+.\tools\template\init-new-pack.ps1 -CharacterId fox -DisplayName Fox -AppName FoxCompanion -ClearPreviousPacks
 ```
 
-（`vite-plugin-electron` 利用時は `npm run dev` で main も起動）
+詳細: [docs/character-pack-spec.md](docs/character-pack-spec.md)
 
-## 現在
+## 主な dev キー（Bike pack）
 
-- Phase 1: 起動 / 常駐 / idle・walk
-- Phase 2: sit / smoke teleport
+- **B** — ブロック追従プレビュー
+- **V** / **E** — idle 振動 / 排気
+
+## 配布
+
+```powershell
+npm run build:icons
+npm run dist
+```
 
 体験チェック: [docs/experience-check.md](docs/experience-check.md)
-
-## 今後
-
-- Phase 3: X / YouTube 検知リアクション（未実装）

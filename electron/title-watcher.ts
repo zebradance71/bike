@@ -97,6 +97,8 @@ let activeWinFn: ActiveWinFn | null = null;
 let started = false;
 
 let lastDetected = false;
+/** Last poll saw a foreground window not owned by our Electron PIDs. */
+let lastForegroundExternal = false;
 let confirmTicks = 0;
 let errStreak = 0;
 let cooldownUntil = 0;
@@ -174,9 +176,12 @@ async function tick(): Promise<void> {
       const procName = win.owner?.name ?? "";
       const ourSelf =
         typeof ownerPid === "number" && selfPids.has(ownerPid);
+      lastForegroundExternal = !ourSelf;
       if (!ourSelf && isBrowserProcess(procName)) {
         detected = matchesPattern(win.title);
       }
+    } else {
+      lastForegroundExternal = false;
     }
     errStreak = 0;
   } catch (err) {
@@ -313,6 +318,11 @@ export function stopTitleWatcher(): void {
 /** Refresh ignored PIDs after companion / launcher windows are created. */
 export function updateTitleWatcherSelfPids(pids: number[]): void {
   selfPids = new Set(pids);
+}
+
+/** True when the foreground app is not our companion / launcher (from last poll). */
+export function isForegroundExternal(): boolean {
+  return lastForegroundExternal;
 }
 
 /**

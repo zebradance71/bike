@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, type ComponentType } from "react";
 import { companionViewportSize, spriteRenderPx } from "./displaySize";
 import { touchCompanionActivity } from "./engine/companionActivity";
 import { useCompanionApp } from "./useDevAnimPreview";
@@ -9,13 +9,19 @@ import {
   resolvePackStemUrl,
 } from "./characters/active";
 import { CompanionSpriteRenderer } from "./render/CompanionSpriteRenderer";
+import type { RendererProps } from "./characters/types";
 import "./companion.css";
+
+const SpriteRenderer: ComponentType<RendererProps> =
+  activeCharacter.Renderer ?? CompanionSpriteRenderer;
 
 export function App() {
   const {
     state,
     replaySeq,
     idleResetSeq,
+    idleDevBeat,
+    idleDevBeatSeq,
     showActionDebug,
     onTransientEnd,
     spriteSize,
@@ -88,6 +94,11 @@ export function App() {
     viewportRef.current?.focus({ preventScroll: true });
   }, []);
 
+  const canDrag =
+    activeCharacter.spriteAnchorBottomLeft === true &&
+    state.action === "idle" &&
+    !blockMode;
+
   return (
     <div
       ref={viewportRef}
@@ -104,17 +115,24 @@ export function App() {
       {import.meta.env.DEV && (
         <span className="companion-size-hint" aria-hidden>
           {state.action}
-          {blockMode ? " · BLOCK" : ""} · {activeCharacter.displayName} · Alt+D
+          {blockMode ? " · BLOCK" : ""} · {activeCharacter.displayName}
+          {activeCharacter.id === "bike"
+            ? " · V vibrate · E exhaust · B block chase"
+            : ""}{" "}
+          · Alt+D
           debug · rev {FRAME_ASSET_REV} · {spriteSize}px / {renderW}px slot
         </span>
       )}
 
-      <CompanionSpriteRenderer
+      <SpriteRenderer
         state={state}
         spriteSize={spriteSize}
         idleResetSeq={idleResetSeq}
         replaySeq={replaySeq}
         onTransientEnd={onTransientEnd}
+        idleDevBeat={idleDevBeat}
+        idleDevBeatSeq={idleDevBeatSeq}
+        draggable={canDrag}
       />
 
       {import.meta.env.DEV && showActionDebug && DebugPanel && (
