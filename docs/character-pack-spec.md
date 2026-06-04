@@ -137,9 +137,9 @@ npm run dist          # NSIS + ZIP → dist-app/
 |------|------|-----|------|
 | Secret | `BUTLER_API_KEY` | `itchio_...` | [itch.io → API keys](https://itch.io/user/settings/api-keys) |
 | Variable | `ITCH_USER` | `zebradance71` | プロフィール URL `https://itch.io/profile/NAME` の **NAME** |
-| Variable | `ITCH_GAME` | `ninja2` | ゲーム URL `https://itch.io/USER/GAME-SLUG` の **GAME-SLUG** |
+| Variable | `ITCH_GAME` | `bike` | ゲーム URL `https://itch.io/USER/GAME-SLUG` の **GAME-SLUG** |
 | Variable | `ITCH_CHANNEL` | `windows` | 省略時 `windows` |
-| Variable | `ITCH_BUTLER_TARGET` | `zebradance71/ninja2:windows` | 上3つより優先（1行で指定） |
+| Variable | `ITCH_BUTLER_TARGET` | `zebradance71/bike:windows` | 上3つより優先（1行で指定） |
 
 `invalid target (bad user)` = **ITCH_USER が itch のユーザー名と一致していない**（GitHub 名・表示名・URL 全体を入れている等）。
 
@@ -147,7 +147,7 @@ npm run dist          # NSIS + ZIP → dist-app/
 
 ```powershell
 $env:BUTLER_API_KEY = "..."
-.\tools\template\itch-page\butler-upload.ps1 -User yourname -Game ninja2 -Channel windows
+.\tools\template\itch-page\butler-upload.ps1 -User yourname -Game bike -Channel windows
 ```
 
 ### GitHub Release
@@ -157,7 +157,7 @@ $env:BUTLER_API_KEY = "..."
 ```powershell
 # package.json version を bump → commit → push
 git tag v0.1.5
-git push origin v0.1.5
+git push bike v0.1.5
 ```
 
 **手動実行（Actions → Release → Run workflow）**

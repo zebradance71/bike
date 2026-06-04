@@ -33,13 +33,14 @@ if (-not (Test-Path (Join-Path $unpacked $exeName))) {
 }
 
 function Write-AppReadme {
-    param([string]$Dir, [string]$Exe)
+    param([string]$Dir, [string]$Exe, [string]$Product)
+    $batName = "Start $Product.bat"
     $readme = @"
-Ninja2 — 使い方
+$Product — 使い方
 ================
 
-  1. 「Start Ninja2.bat」または「$Exe」をダブルクリック
-  2. タスクバー右下（^）のトレイに忍者アイコンが出ます
+  1. 「$batName」または「$Exe」をダブルクリック
+  2. タスクバー右下（^）のトレイにアイコンが出ます
 
 ※ 同じフォルダの .dll / .pak / resources / locales は削除しないでください。
   Electron（Chromium）の仕様で exe の横に必要です。
@@ -50,14 +51,15 @@ Ninja2 — 使い方
 }
 
 function Write-ZipRootReadme {
-    param([string]$Path, [string]$Folder, [string]$Exe)
+    param([string]$Path, [string]$Folder, [string]$Exe, [string]$Product)
+    $batName = "Start $Product.bat"
     $readme = @"
-Ninja2 — ZIP の使い方
+$Product — ZIP の使い方
 =====================
 
   1. この ZIP を右クリック → 「すべて展開」
   2. 「$Folder」フォルダを開く
-  3. 「Start Ninja2.bat」または「$Exe」をダブルクリック
+  3. 「$batName」または「$Exe」をダブルクリック
 
 ※ $Folder 内の .dll / .pak などは削除しないでください（起動に必要です）。
 "@
@@ -65,13 +67,13 @@ Ninja2 — ZIP の使い方
 }
 
 function Write-StartBat {
-    param([string]$Dir, [string]$Exe)
+    param([string]$Dir, [string]$Exe, [string]$Product)
     $bat = @"
 @echo off
 cd /d "%~dp0"
 start "" "$Exe"
 "@
-    Set-Content -Path (Join-Path $Dir "Start Ninja2.bat") -Value $bat -Encoding ascii
+    Set-Content -Path (Join-Path $Dir "Start $Product.bat") -Value $bat -Encoding ascii
 }
 
 function Organize-AppDir {
@@ -141,9 +143,9 @@ New-Item -ItemType Directory -Path $appDir -Force | Out-Null
 Write-Host "[package-win-folder] copying win-unpacked -> $appDir"
 Copy-Item -Path (Join-Path $unpacked "*") -Destination $appDir -Recurse -Force
 Organize-AppDir -AppDir $appDir
-Write-AppReadme -Dir $appDir -Exe $exeName
-Write-StartBat -Dir $appDir -Exe $exeName
-Write-ZipRootReadme -Path (Join-Path $staging "README.txt") -Folder $product -Exe $exeName
+Write-AppReadme -Dir $appDir -Exe $exeName -Product $product
+Write-StartBat -Dir $appDir -Exe $exeName -Product $product
+Write-ZipRootReadme -Path (Join-Path $staging "README.txt") -Folder $product -Exe $exeName -Product $product
 
 $zipOut = Join-Path $repo "dist-app\$product-$version-win64.zip"
 Write-Host "[package-win-folder] creating $zipOut"
