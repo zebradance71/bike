@@ -14,7 +14,7 @@ export type BlockChaseDeps = {
 };
 
 type ChaseSession = {
-  cancelPollId: ReturnType<typeof setInterval> | null;
+  cancelPollId: number | null;
   offFacing: () => void;
   resolveRun: (() => void) | null;
 };

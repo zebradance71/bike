@@ -66,7 +66,7 @@ export function useCharacterLayers(
   const loopGenRef = useRef(0);
   const timersRef = useRef<number[]>([]);
 
-  const [idleStem, setIdleStem] = useState(IDLE_BASE_STEM);
+  const [idleStem, setIdleStem] = useState<string>(IDLE_BASE_STEM);
   const [idlePhase, setIdlePhase] = useState("base");
   const [frameIndex, setFrameIndex] = useState(0);
 

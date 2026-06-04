@@ -1,8 +1,7 @@
 import { useRef, type CSSProperties } from "react";
-import type { DisplaySize } from "../displaySize";
 import { spriteRenderPx } from "../displaySize";
 import { activeCharacter } from "../characters/active";
-import type { IdleDevBeat, RendererProps } from "../characters/types";
+import type { RendererProps } from "../characters/types";
 import { useCompanionDrag } from "../useCompanionDrag";
 import { SpriteBodySlot } from "../frames/SpriteBodySlot";
 import "../frames/sprite-body-slot.css";
