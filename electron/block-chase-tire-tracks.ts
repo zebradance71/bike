@@ -6,8 +6,8 @@ const SPRITE_RENDER_SCALE = 1.1;
 
 /** Keep in sync with `src/companion/tireTracksOverlay/constants.ts`. */
 export const TIRE_TRACK_MAX_AGE_MS = 4_000;
-const SAMPLE_SPACING_PX = 6;
-const MAX_STAMPS_PER_SEGMENT = 16;
+const SAMPLE_SPACING_PX = 10;
+const MAX_STAMPS_PER_SEGMENT = 8;
 
 function lastBornAt(marks: readonly TireMark[]): number {
   return marks.length > 0 ? marks[marks.length - 1]!.bornAt : 0;
@@ -172,7 +172,7 @@ export function stampTireMarksAlongSegment(
     addedMarks.push(mark);
   }
 
-  if (trimTick++ % 6 === 0) {
+  if (trimTick++ % 3 === 0) {
     trimMarks(marks, bornAt);
   }
   return { to, added: steps, addedMarks };

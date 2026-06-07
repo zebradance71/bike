@@ -1,7 +1,7 @@
 {
     "name": "bike",
     "type": "module",
-    "version": "0.1.12",
+    "version": "0.1.13",
     "private": true,
     "description": "Silent Bike Companion — a small desktop friend",
     "author": "ToriiLabs",

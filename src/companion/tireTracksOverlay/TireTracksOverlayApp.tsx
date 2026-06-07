@@ -10,6 +10,9 @@ import type { TireTracksFramePayload, TireTrackMarkPayload } from "./types";
 
 type Layout = { w: number; h: number; dpr: number };
 
+/** While chasing, skip expensive full redraws (opacity ≈1 on fresh marks). */
+const CHASE_FADE_HOLD_MS = 280;
+
 function overlayDpr(): number {
   return Math.min(TIRE_TRACK_OVERLAY_MAX_DPR, window.devicePixelRatio || 1);
 }
@@ -46,6 +49,17 @@ function pruneMarksInPlace(marks: TireTrackMarkPayload[], now: number): number {
   return removed;
 }
 
+function fadeIntervalMs(markCount: number, chasing: boolean): number {
+  if (chasing) {
+    if (markCount > 800) return 200;
+    if (markCount > 400) return 150;
+    return 100;
+  }
+  if (markCount > 800) return 66;
+  if (markCount > 400) return 50;
+  return TIRE_TRACK_FADE_MS;
+}
+
 export function TireTracksOverlayApp() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
@@ -54,6 +68,7 @@ export function TireTracksOverlayApp() {
   const workAreaRef = useRef({ x: 0, y: 0, width: 0, height: 0 });
   const animRef = useRef(0);
   const lastFadePaintMsRef = useRef(0);
+  const lastAppendMsRef = useRef(0);
   const needsFullRedrawRef = useRef(true);
 
   useEffect(() => {
@@ -112,9 +127,13 @@ export function TireTracksOverlayApp() {
       const tick = () => {
         animRef.current = 0;
         const now = Date.now();
-        if (marksRef.current.length === 0) return;
+        const markCount = marksRef.current.length;
+        if (markCount === 0) return;
 
-        if (now - lastFadePaintMsRef.current >= TIRE_TRACK_FADE_MS) {
+        const chasing = now - lastAppendMsRef.current < CHASE_FADE_HOLD_MS;
+        const fadeMs = fadeIntervalMs(markCount, chasing);
+
+        if (now - lastFadePaintMsRef.current >= fadeMs) {
           lastFadePaintMsRef.current = now;
           paintFull(now);
         }
@@ -134,6 +153,7 @@ export function TireTracksOverlayApp() {
         needsFullRedrawRef.current = true;
       } else if (payload.append?.length) {
         marksRef.current.push(...payload.append);
+        lastAppendMsRef.current = now;
       }
 
       if (marksRef.current.length === 0) {
@@ -163,6 +183,7 @@ export function TireTracksOverlayApp() {
     const onClear = () => {
       marksRef.current = [];
       needsFullRedrawRef.current = true;
+      lastAppendMsRef.current = 0;
       stopAnim();
       const prepared = ensureCtx();
       if (prepared) {

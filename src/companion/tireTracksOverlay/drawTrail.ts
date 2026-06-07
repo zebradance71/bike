@@ -4,8 +4,6 @@ import type { TireTrackMarkPayload } from "./types";
 const LINE_WIDTH = 10;
 const TELEPORT_PX = 48;
 const TELEPORT_SQ = TELEPORT_PX * TELEPORT_PX;
-/** Arc-length color sample spacing — smaller = smoother hue transitions. */
-const COLOR_STEP_PX = 2;
 
 function isTeleport(
   a: TireTrackMarkPayload,
@@ -42,15 +40,30 @@ function prepStroke(ctx: CanvasRenderingContext2D): void {
   ctx.lineWidth = LINE_WIDTH;
 }
 
-/**
- * Walk polyline at fixed px spacing; color from bornAt interpolated along each edge.
- */
+/** Wider steps when many marks — keeps fade redraw cost bounded. */
+export function colorStepPxForMarkCount(markCount: number): number {
+  if (markCount > 1200) return 6;
+  if (markCount > 800) return 5;
+  if (markCount > 500) return 4;
+  if (markCount > 250) return 3;
+  return 2;
+}
+
+function flushColorPath(
+  ctx: CanvasRenderingContext2D,
+  pathOpen: boolean
+): void {
+  if (pathOpen) ctx.stroke();
+}
+
+/** Arc-length samples; batches consecutive same-color segments into one stroke. */
 function strokePolylineArcSampled(
   ctx: CanvasRenderingContext2D,
   marks: readonly TireTrackMarkPayload[],
   now: number,
   startMarkIndex: number,
-  hueRef0: number
+  hueRef0: number,
+  colorStepPx: number
 ): void {
   if (marks.length < 2) return;
 
@@ -58,16 +71,20 @@ function strokePolylineArcSampled(
   let hueRef = hueRef0;
   let px = marks[startIdx]!.x;
   let py = marks[startIdx]!.y;
-  /** Append continues existing stroke — draw from the seed point. */
   let drawing = startMarkIndex > 0;
-  let distBudget = COLOR_STEP_PX;
+  let distBudget = colorStepPx;
+
+  let pathOpen = false;
+  let pathColor = "";
 
   for (let ei = Math.max(1, startIdx + 1); ei < marks.length; ei++) {
     const a = marks[ei - 1]!;
     const b = marks[ei]!;
     if (isTeleport(a, b)) {
+      flushColorPath(ctx, pathOpen);
+      pathOpen = false;
       drawing = false;
-      distBudget = COLOR_STEP_PX;
+      distBudget = colorStepPx;
       hueRef = hueContinuousFromBornAt(b.bornAt);
       px = b.x;
       py = b.y;
@@ -80,11 +97,8 @@ function strokePolylineArcSampled(
     if (len < 0.001) continue;
 
     let walked = 0;
-
     while (walked < len) {
-      const remain = len - walked;
-      const need = distBudget;
-      const step = Math.min(need, remain);
+      const step = Math.min(distBudget, len - walked);
       walked += step;
       distBudget -= step;
 
@@ -93,26 +107,74 @@ function strokePolylineArcSampled(
       const sy = a.y + dy * t;
       const sborn = a.bornAt + (b.bornAt - a.bornAt) * t;
 
-      if (distBudget <= 1e-6) {
-        distBudget = COLOR_STEP_PX;
-        const paint = hslaAtBorn(sborn, now, hueRef);
-        if (paint) {
-          if (drawing) {
-            ctx.strokeStyle = paint.color;
-            ctx.beginPath();
-            ctx.moveTo(px, py);
-            ctx.lineTo(sx, sy);
-            ctx.stroke();
-          }
-          hueRef = paint.hueCont;
-          drawing = true;
-        } else {
-          drawing = false;
-        }
+      if (distBudget > 1e-6) continue;
+      distBudget = colorStepPx;
+
+      const paint = hslaAtBorn(sborn, now, hueRef);
+      if (!paint) {
+        flushColorPath(ctx, pathOpen);
+        pathOpen = false;
+        drawing = false;
         px = sx;
         py = sy;
+        continue;
       }
+      hueRef = paint.hueCont;
+
+      if (!drawing) {
+        px = sx;
+        py = sy;
+        drawing = true;
+        continue;
+      }
+
+      if (pathOpen && paint.color !== pathColor) {
+        flushColorPath(ctx, pathOpen);
+        pathOpen = false;
+      }
+
+      if (!pathOpen) {
+        ctx.strokeStyle = paint.color;
+        ctx.beginPath();
+        ctx.moveTo(px, py);
+        pathColor = paint.color;
+        pathOpen = true;
+      }
+      ctx.lineTo(sx, sy);
+      px = sx;
+      py = sy;
     }
+  }
+  flushColorPath(ctx, pathOpen);
+}
+
+/** Fast append — one stroke per new edge (O(added), not O(trail)). */
+function strokeEdgesAppend(
+  ctx: CanvasRenderingContext2D,
+  marks: readonly TireTrackMarkPayload[],
+  now: number,
+  firstMarkIndex: number
+): void {
+  const start = Math.max(1, firstMarkIndex);
+  if (start >= marks.length) return;
+
+  let hueRef = hueContinuousFromBornAt(marks[start - 1]!.bornAt);
+  for (let i = start; i < marks.length; i++) {
+    const a = marks[i - 1]!;
+    const b = marks[i]!;
+    if (isTeleport(a, b)) {
+      hueRef = hueContinuousFromBornAt(b.bornAt);
+      continue;
+    }
+    const born = a.bornAt + (b.bornAt - a.bornAt) * 0.5;
+    const paint = hslaAtBorn(born, now, hueRef);
+    if (!paint) continue;
+    hueRef = paint.hueCont;
+    ctx.strokeStyle = paint.color;
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y);
+    ctx.lineTo(b.x, b.y);
+    ctx.stroke();
   }
 }
 
@@ -123,6 +185,7 @@ export function drawTrailFull(
 ): void {
   if (marks.length < 2) return;
   prepStroke(ctx);
+  const step = colorStepPxForMarkCount(marks.length);
   const runs = splitRuns(marks);
   for (let r = 0; r < runs.length; r++) {
     const run = runs[r]!;
@@ -131,7 +194,8 @@ export function drawTrailFull(
       run,
       now,
       0,
-      hueContinuousFromBornAt(run[0]!.bornAt)
+      hueContinuousFromBornAt(run[0]!.bornAt),
+      step
     );
   }
 }
@@ -144,13 +208,5 @@ export function drawTrailAppend(
 ): void {
   if (marks.length < 2) return;
   prepStroke(ctx);
-  const start = Math.max(1, firstMarkIndex);
-  const seed = marks[start - 1]!;
-  strokePolylineArcSampled(
-    ctx,
-    marks,
-    now,
-    start - 1,
-    hueContinuousFromBornAt(seed.bornAt)
-  );
+  strokeEdgesAppend(ctx, marks, now, firstMarkIndex);
 }

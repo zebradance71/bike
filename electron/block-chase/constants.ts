@@ -1,7 +1,7 @@
 export const MOVE_TICK_MS = 4;
 export const MOVE_TICK_MS_NO_TRACKS = 12;
 export const TRIM_INTERVAL_MS = 500;
-export const TIRE_TRACKS_UI_EVERY_N_APPEND = 24;
+export const TIRE_TRACKS_UI_EVERY_N_APPEND = 32;
 /** Keep companion above tire-track overlays (Win32 re-stacks on showInactive). */
 export const RAISE_COMPANION_MIN_MS = 36;
 export const FACING_VEL_THRESHOLD_PX = 12;
