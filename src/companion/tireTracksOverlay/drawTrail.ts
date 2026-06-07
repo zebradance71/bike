@@ -1,142 +1,156 @@
-import { hueFromBornAt, tireMarkOpacity } from "./fade";
+import { hslaAtBorn, hueContinuousFromBornAt } from "./fade";
 import type { TireTrackMarkPayload } from "./types";
 
-const TRAIL_WIDTH_PX = 7;
-const MARK_SAT = 78;
-const MARK_LIGHT = 48;
-const SEGMENT_GAP_PX = 36;
-/** Wide bands → fewer strokes while keeping a rainbow over the trail lifetime. */
-const HUE_BAND_MS = 720;
-const GAP_SQ = SEGMENT_GAP_PX * SEGMENT_GAP_PX;
-const DRIVING_ALPHA = 0.76;
+const LINE_WIDTH = 10;
+const TELEPORT_PX = 48;
+const TELEPORT_SQ = TELEPORT_PX * TELEPORT_PX;
+/** Arc-length color sample spacing — smaller = smoother hue transitions. */
+const COLOR_STEP_PX = 2;
 
-export type DrawTrailOptions = {
-  /** Only draw marks from this index (inclusive). */
-  fromIndex?: number;
-  /** While driving, skip per-segment fade (canvas keeps prior ink). */
-  driving?: boolean;
-};
-
-function distSq(ax: number, ay: number, bx: number, by: number): number {
-  const dx = bx - ax;
-  const dy = by - ay;
-  return dx * dx + dy * dy;
+function isTeleport(
+  a: TireTrackMarkPayload,
+  b: TireTrackMarkPayload
+): boolean {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  return dx * dx + dy * dy > TELEPORT_SQ;
 }
 
-function strokePolyline(
-  ctx: CanvasRenderingContext2D,
-  marks: readonly TireTrackMarkPayload[],
-  start: number,
-  end: number,
-  now: number,
-  lastStampMs: number,
-  driving: boolean
-): void {
-  if (start > end) return;
-  if (start === end) return;
-
-  let alpha = DRIVING_ALPHA;
-  if (!driving) {
-    alpha = 1;
-    for (let i = start; i <= end; i++) {
-      const a = tireMarkOpacity(marks[i]!.bornAt, now, lastStampMs);
-      if (a < alpha) alpha = a;
+function splitRuns(
+  marks: readonly TireTrackMarkPayload[]
+): TireTrackMarkPayload[][] {
+  const runs: TireTrackMarkPayload[][] = [];
+  let run: TireTrackMarkPayload[] = [];
+  for (let i = 0; i < marks.length; i++) {
+    const m = marks[i]!;
+    if (run.length > 0) {
+      const prev = run[run.length - 1]!;
+      if (isTeleport(prev, m)) {
+        runs.push(run);
+        run = [];
+      }
     }
+    run.push(m);
   }
-  if (alpha <= 0.01) return;
+  if (run.length > 0) runs.push(run);
+  return runs;
+}
 
-  const hue = hueFromBornAt(marks[end]!.bornAt);
-  ctx.beginPath();
-  ctx.moveTo(marks[start]!.x, marks[start]!.y);
-  for (let i = start + 1; i <= end; i++) {
-    ctx.lineTo(marks[i]!.x, marks[i]!.y);
-  }
-  ctx.strokeStyle = `hsl(${hue}, ${MARK_SAT}%, ${MARK_LIGHT}%)`;
-  ctx.globalAlpha = alpha;
-  ctx.lineWidth = TRAIL_WIDTH_PX;
-  ctx.lineCap = "butt";
+function prepStroke(ctx: CanvasRenderingContext2D): void {
+  ctx.lineCap = "round";
   ctx.lineJoin = "round";
-  ctx.stroke();
-  ctx.globalAlpha = 1;
+  ctx.lineWidth = LINE_WIDTH;
 }
 
 /**
- * While driving: one stroke per spatial run only (no hue-band splits).
- * Connects from the prior mark so fast appends never leave a visual gap.
+ * Walk polyline at fixed px spacing; color from bornAt interpolated along each edge.
  */
-export function drawDrivingAppend(
+function strokePolylineArcSampled(
   ctx: CanvasRenderingContext2D,
   marks: readonly TireTrackMarkPayload[],
-  fromIndex: number,
   now: number,
-  lastStampMs: number
+  startMarkIndex: number,
+  hueRef0: number
 ): void {
-  const n = marks.length;
-  if (n === 0 || fromIndex >= n) return;
+  if (marks.length < 2) return;
 
-  const start = Math.max(0, fromIndex - 1);
-  let runStart = start;
+  const startIdx = Math.max(0, Math.min(marks.length - 1, startMarkIndex));
+  let hueRef = hueRef0;
+  let px = marks[startIdx]!.x;
+  let py = marks[startIdx]!.y;
+  /** Append continues existing stroke — draw from the seed point. */
+  let drawing = startMarkIndex > 0;
+  let distBudget = COLOR_STEP_PX;
 
-  for (let i = start + 1; i <= n; i++) {
-    const atEnd = i === n;
-    let breakRun = atEnd;
-    if (!breakRun) {
-      const prev = marks[i - 1]!;
-      const curr = marks[i]!;
-      if (distSq(prev.x, prev.y, curr.x, curr.y) > GAP_SQ) breakRun = true;
+  for (let ei = Math.max(1, startIdx + 1); ei < marks.length; ei++) {
+    const a = marks[ei - 1]!;
+    const b = marks[ei]!;
+    if (isTeleport(a, b)) {
+      drawing = false;
+      distBudget = COLOR_STEP_PX;
+      hueRef = hueContinuousFromBornAt(b.bornAt);
+      px = b.x;
+      py = b.y;
+      continue;
     }
-    if (!breakRun) continue;
 
-    strokePolyline(ctx, marks, runStart, i - 1, now, lastStampMs, true);
-    runStart = i;
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    const len = Math.hypot(dx, dy);
+    if (len < 0.001) continue;
+
+    let walked = 0;
+
+    while (walked < len) {
+      const remain = len - walked;
+      const need = distBudget;
+      const step = Math.min(need, remain);
+      walked += step;
+      distBudget -= step;
+
+      const t = walked / len;
+      const sx = a.x + dx * t;
+      const sy = a.y + dy * t;
+      const sborn = a.bornAt + (b.bornAt - a.bornAt) * t;
+
+      if (distBudget <= 1e-6) {
+        distBudget = COLOR_STEP_PX;
+        const paint = hslaAtBorn(sborn, now, hueRef);
+        if (paint) {
+          if (drawing) {
+            ctx.strokeStyle = paint.color;
+            ctx.beginPath();
+            ctx.moveTo(px, py);
+            ctx.lineTo(sx, sy);
+            ctx.stroke();
+          }
+          hueRef = paint.hueCont;
+          drawing = true;
+        } else {
+          drawing = false;
+        }
+        px = sx;
+        py = sy;
+      }
+    }
   }
 }
 
-/**
- * Spatial gaps + coarse hue bands. One stroke per band, not per stamp.
- */
-export function drawColorTrail(
+export function drawTrailFull(
   ctx: CanvasRenderingContext2D,
   marks: readonly TireTrackMarkPayload[],
-  now: number,
-  lastStampMs: number,
-  options: DrawTrailOptions = {}
+  now: number
 ): void {
-  const n = marks.length;
-  if (n === 0) return;
-
-  const fromIndex = Math.max(0, options.fromIndex ?? 0);
-  const driving = options.driving ?? false;
-  if (fromIndex >= n) return;
-
-  let runStart = fromIndex;
-  let bandStartBornAt = marks[fromIndex]!.bornAt;
-
-  for (let i = Math.max(fromIndex + 1, 1); i <= n; i++) {
-    const atEnd = i === n;
-    let breakRun = atEnd;
-    if (!breakRun) {
-      const prev = marks[i - 1]!;
-      const curr = marks[i]!;
-      if (distSq(prev.x, prev.y, curr.x, curr.y) > GAP_SQ) breakRun = true;
-      else if (curr.bornAt - bandStartBornAt > HUE_BAND_MS) breakRun = true;
-    }
-
-    if (!breakRun) continue;
-
-    const runEnd = i - 1;
-    if (runEnd >= runStart) {
-      strokePolyline(
-        ctx,
-        marks,
-        runStart,
-        runEnd,
-        now,
-        lastStampMs,
-        driving
-      );
-    }
-    runStart = i;
-    if (i < n) bandStartBornAt = marks[i]!.bornAt;
+  if (marks.length < 2) return;
+  prepStroke(ctx);
+  const runs = splitRuns(marks);
+  for (let r = 0; r < runs.length; r++) {
+    const run = runs[r]!;
+    strokePolylineArcSampled(
+      ctx,
+      run,
+      now,
+      0,
+      hueContinuousFromBornAt(run[0]!.bornAt)
+    );
   }
+}
+
+export function drawTrailAppend(
+  ctx: CanvasRenderingContext2D,
+  marks: readonly TireTrackMarkPayload[],
+  firstMarkIndex: number,
+  now: number
+): void {
+  if (marks.length < 2) return;
+  prepStroke(ctx);
+  const start = Math.max(1, firstMarkIndex);
+  const seed = marks[start - 1]!;
+  strokePolylineArcSampled(
+    ctx,
+    marks,
+    now,
+    start - 1,
+    hueContinuousFromBornAt(seed.bornAt)
+  );
 }

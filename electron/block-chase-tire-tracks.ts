@@ -5,17 +5,13 @@ const WINDOW_CHROME_PX = 24;
 const SPRITE_RENDER_SCALE = 1.1;
 
 /** Keep in sync with `src/companion/tireTracksOverlay/constants.ts`. */
-export const TIRE_TRACK_MAX_AGE_MS = 5_500;
-export const TIRE_TRACK_IDLE_FADE_AFTER_MS = 350;
-/** Slightly tighter than line width so joins read as one stroke. */
-const SAMPLE_SPACING_PX = 5;
-/** Max stamps per tick on normal segments. */
-const MAX_STAMPS_PER_SEGMENT = 32;
-/** Long jumps (monitor cross / snap) need denser coverage. */
-const MAX_STAMPS_LONG_SEGMENT = 120;
-const LONG_SEGMENT_PX = 120;
-/** Never leave gaps wider than this along a segment (px). */
-const MAX_STAMP_GAP_PX = 7;
+export const TIRE_TRACK_MAX_AGE_MS = 4_000;
+const SAMPLE_SPACING_PX = 6;
+const MAX_STAMPS_PER_SEGMENT = 16;
+
+function lastBornAt(marks: readonly TireMark[]): number {
+  return marks.length > 0 ? marks[marks.length - 1]!.bornAt : 0;
+}
 
 export type TireMark = {
   screenX: number;
@@ -27,27 +23,9 @@ export type TireMark = {
 export type OverlayMark = {
   x: number;
   y: number;
+  angleDeg: number;
   bornAt: number;
 };
-
-function tireMarkOpacity(
-  bornAt: number,
-  now: number,
-  lastStampMs: number
-): number {
-  const age = now - bornAt;
-  if (age >= TIRE_TRACK_MAX_AGE_MS) return 0;
-
-  let u = age / TIRE_TRACK_MAX_AGE_MS;
-  const idle =
-    lastStampMs > 0 && now - lastStampMs >= TIRE_TRACK_IDLE_FADE_AFTER_MS;
-  if (idle) {
-    u = Math.pow(u, 0.72);
-  }
-  const t = Math.min(1, Math.max(0, u));
-  const smooth = t * t * (3 - 2 * t);
-  return 1 - smooth;
-}
 
 function renderW(spritePx: number): number {
   return Math.round(spritePx * SPRITE_RENDER_SCALE);
@@ -73,7 +51,6 @@ export function rearWheelScreenFromWindow(
   };
 }
 
-/** Place the window so the rear wheel sits on the given screen point. */
 export function windowPositionFromWheelScreen(
   wheelX: number,
   wheelY: number,
@@ -105,7 +82,6 @@ function wheelLocalInWindow(
   };
 }
 
-/** Keep the rear wheel inside the work area before deriving window top-left. */
 export function clampWheelToWorkArea(
   wheelX: number,
   wheelY: number,
@@ -131,71 +107,82 @@ export function stampTireMarksAlongSegment(
   from: { x: number; y: number } | null,
   to: { x: number; y: number },
   bornAt: number,
-  lastStampMs: number
+  _lastStampMs: number
 ): {
   to: { x: number; y: number };
   added: number;
   addedMarks: TireMark[];
 } {
   const addedMarks: TireMark[] = [];
+  const angleDeg = from
+    ? (Math.atan2(to.y - from.y, to.x - from.x) * 180) / Math.PI
+    : 0;
+
   if (!from) {
     const mark: TireMark = {
       screenX: to.x,
       screenY: to.y,
-      angleDeg: 0,
+      angleDeg,
       bornAt,
     };
     marks.push(mark);
     addedMarks.push(mark);
-    trimMarksMaybe(marks, bornAt, lastStampMs);
+    trimMarks(marks, bornAt);
     return { to, added: 1, addedMarks };
   }
 
   const dx = to.x - from.x;
   const dy = to.y - from.y;
   const dist = Math.hypot(dx, dy);
-  const spacing = SAMPLE_SPACING_PX;
-  if (dist < spacing) {
-    trimMarksMaybe(marks, bornAt, lastStampMs);
+  if (dist < 0.01) {
     return { to, added: 0, addedMarks };
   }
 
-  const angleDeg = (Math.atan2(dy, dx) * 180) / Math.PI;
-  const stepsForSpacing = Math.max(1, Math.ceil(dist / spacing));
-  const stepsForCoverage = Math.max(1, Math.ceil(dist / MAX_STAMP_GAP_PX));
-  const stampCap =
-    dist >= LONG_SEGMENT_PX ? MAX_STAMPS_LONG_SEGMENT : MAX_STAMPS_PER_SEGMENT;
+  if (dist < SAMPLE_SPACING_PX) {
+    const t0 = lastBornAt(marks);
+    const mark: TireMark = {
+      screenX: to.x,
+      screenY: to.y,
+      angleDeg,
+      bornAt: t0 > 0 ? t0 + (bornAt - t0) * 0.5 : bornAt,
+    };
+    marks.push(mark);
+    addedMarks.push(mark);
+    trimMarks(marks, bornAt);
+    return { to, added: 1, addedMarks };
+  }
+
   const steps = Math.min(
-    stampCap,
-    Math.max(stepsForSpacing, stepsForCoverage)
+    MAX_STAMPS_PER_SEGMENT,
+    Math.max(1, Math.ceil(dist / SAMPLE_SPACING_PX))
   );
-  const spreadMs = Math.min(280, steps * 12);
+
+  const t0 = lastBornAt(marks);
+  const startBorn = t0 > 0 ? t0 : bornAt - 32;
+
   for (let i = 1; i <= steps; i++) {
     const t = i / steps;
     const mark: TireMark = {
       screenX: from.x + dx * t,
       screenY: from.y + dy * t,
       angleDeg,
-      bornAt: bornAt - spreadMs * (1 - t),
+      bornAt: startBorn + (bornAt - startBorn) * t,
     };
     marks.push(mark);
     addedMarks.push(mark);
   }
-  trimMarksMaybe(marks, bornAt, lastStampMs);
+
+  if (trimTick++ % 6 === 0) {
+    trimMarks(marks, bornAt);
+  }
   return { to, added: steps, addedMarks };
 }
 
-function trimMarksMaybe(
+export function trimMarks(
   marks: TireMark[],
   now: number,
-  lastStampMs: number
+  _lastStampMs?: number
 ): void {
-  trimTick += 1;
-  if (trimTick % 3 !== 0) return;
-  trimMarks(marks, now, lastStampMs);
-}
-
-export function trimMarks(marks: TireMark[], now: number, _lastStampMs: number): void {
   const cutoff = now - TIRE_TRACK_MAX_AGE_MS;
   let write = 0;
   for (let read = 0; read < marks.length; read++) {
@@ -209,17 +196,17 @@ export function trimMarks(marks: TireMark[], now: number, _lastStampMs: number):
 export function tireMarksToOverlay(
   added: readonly TireMark[],
   workArea: { x: number; y: number; width: number; height: number },
-  now: number,
-  lastStampMs: number,
+  _now: number,
+  _lastStampMs: number,
   out: OverlayMark[] = []
 ): OverlayMark[] {
   out.length = 0;
   for (let i = 0; i < added.length; i++) {
     const m = added[i]!;
-    if (m.bornAt < now - TIRE_TRACK_MAX_AGE_MS) continue;
     out.push({
       x: m.screenX - workArea.x,
       y: m.screenY - workArea.y,
+      angleDeg: m.angleDeg,
       bornAt: m.bornAt,
     });
   }
@@ -230,7 +217,7 @@ export function marksToOverlayPayload(
   marks: readonly TireMark[],
   workArea: { x: number; y: number; width: number; height: number },
   now: number,
-  lastStampMs: number,
+  _lastStampMs: number,
   out: OverlayMark[] = []
 ): {
   workArea: { x: number; y: number; width: number; height: number };
@@ -241,10 +228,10 @@ export function marksToOverlayPayload(
   for (let i = 0; i < marks.length; i++) {
     const m = marks[i]!;
     if (m.bornAt < minBornAt) continue;
-    if (tireMarkOpacity(m.bornAt, now, lastStampMs) <= 0.01) continue;
     out.push({
       x: m.screenX - workArea.x,
       y: m.screenY - workArea.y,
+      angleDeg: m.angleDeg,
       bornAt: m.bornAt,
     });
   }

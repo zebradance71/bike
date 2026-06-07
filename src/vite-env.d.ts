@@ -59,8 +59,8 @@ interface TireTracksAPI {
   onFrame: (
     callback: (payload: {
       workArea: { x: number; y: number; width: number; height: number };
-      marks?: Array<{ x: number; y: number; bornAt: number }>;
-      append?: Array<{ x: number; y: number; bornAt: number }>;
+      marks?: Array<{ x: number; y: number; bornAt: number; angleDeg: number }>;
+      append?: Array<{ x: number; y: number; bornAt: number; angleDeg: number }>;
       fullRedraw?: boolean;
     }) => void
   ) => () => void;

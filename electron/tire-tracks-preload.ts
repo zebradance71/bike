@@ -4,6 +4,7 @@ export type TireTrackMarkPayload = {
   x: number;
   y: number;
   bornAt: number;
+  angleDeg: number;
 };
 
 export type TireTracksFramePayload = {
